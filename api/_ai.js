@@ -30,11 +30,17 @@ const DEFAULT_MODEL = {
   gemini: { low: 'gemini-3.1-flash-lite', standard: 'gemini-3.8-flash', high: 'gemini-3.1-pro-preview' },
   openai: { low: 'gpt-5.5', standard: 'gpt-5.5', high: 'gpt-5.5' }, // OpenAI: same model, different reasoning effort
 };
+const FALLBACK_MODELS = {
+  anthropic: ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'],
+  gemini: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
+  openai: ['gpt-4.1', 'gpt-4o', 'gpt-5'],
+};
 const KEY_NAME = { anthropic: 'ANTHROPIC_API_KEY', gemini: 'GEMINI_API_KEY', openai: 'OPENAI_API_KEY' };
 const LABEL = { anthropic: 'Claude', gemini: 'Gemini', openai: 'ChatGPT (OpenAI)' };
 const ALIAS = { claude: 'anthropic', google: 'gemini', chatgpt: 'openai', gpt: 'openai' };
 
-const env = (n) => (process.env[n] || '').trim();
+// Reads a Vercel variable; ignores stray spaces, quotes and a pasted "NAME=" prefix.
+const env = (n) => String(process.env[n] || '').trim().replace(new RegExp('^' + n + '\\s*=\\s*'), '').replace(/^['"]+|['"]+$/g, '').trim();
 const keyFor = (p) => env(KEY_NAME[p]) || (p === 'gemini' ? env('GOOGLE_API_KEY') : '');
 
 function pickProvider() {
@@ -169,17 +175,24 @@ function handleEvent(cfg, ev, onText, state) {
 async function open({ system, messages, maxTokens, signal, quality }) {
   const cfg = info(quality);
   if (!cfg.configured) return { ok: false, status: 500, message: 'AI service is not configured. Set ' + cfg.keyName + ' in Vercel (or choose another provider with AI_PROVIDER).' };
-  const reqd = buildRequest(cfg, { system, messages, maxTokens });
-  let up;
-  try {
-    up = await fetch(reqd.url, { method: 'POST', signal, headers: reqd.headers, body: JSON.stringify(reqd.body) });
-  } catch (e) {
-    return { ok: false, status: 502, message: 'Could not reach the AI service. Please try again.' };
-  }
-  if (!up.ok) {
+  // If a model name is not available on this account (404 / "model not found"), try other current models of the same
+  // provider before giving up. A model the owner set in Vercel (<PROVIDER>_MODEL...) is tried first.
+  const tryModels = [cfg.model].concat((FALLBACK_MODELS[cfg.provider] || []).filter((m) => m !== cfg.model));
+  let up, used = cfg;
+  for (let i = 0; i < tryModels.length; i++) {
+    used = { ...cfg, model: tryModels[i] };
+    const reqd = buildRequest(used, { system, messages, maxTokens });
+    try {
+      up = await fetch(reqd.url, { method: 'POST', signal, headers: reqd.headers, body: JSON.stringify(reqd.body) });
+    } catch (e) {
+      return { ok: false, status: 502, message: 'Could not reach the AI service. Please try again.' };
+    }
+    if (up.ok) break;
     const text = await up.text().catch(() => '');
-    console.error('AI upstream error', cfg.provider, up.status, text.slice(0, 400));
-    const f = friendlyError(cfg, up.status, text);
+    console.error('AI upstream error', cfg.provider, used.model, up.status, text.slice(0, 400));
+    const modelProblem = up.status === 404 || (up.status === 400 && /model/i.test(text) && /not (found|supported)|does not exist|invalid/i.test(text));
+    if (modelProblem && i < tryModels.length - 1) continue;
+    const f = friendlyError(used, up.status, text);
     return { ok: false, status: f.status, message: f.message };
   }
   return {

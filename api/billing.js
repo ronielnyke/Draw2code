@@ -48,7 +48,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
     const paymentsLive = (process.env.PAYMONGO_SECRET_KEY || '').trim().startsWith('sk_live_');
     const payments = !!(process.env.PAYMONGO_SECRET_KEY || '').trim();
-    if (isOwner(user)) return send(res, 200, { pro: true, owner: true, tools: true, mode: 'owner', tier: 'owner', expiresAt: 0, used: 0, limit: 0, resetAt: 0, frameworks: frameworksFor('owner'), trial: null, configured: !!getDb(), payments, paymentsLive, setup: await health() });
+    if (isOwner(user)) return send(res, 200, { pro: true, owner: true, tools: true, mode: 'owner', tier: 'owner', expiresAt: 0, used: 0, limit: 0, resetAt: 0, frameworks: frameworksFor('owner'), trial: null, configured: !!getDb(), payments, paymentsLive, setup: await health(user) });
     await reconcile(user);
     const st = await status(user.uid);
     return send(res, 200, {

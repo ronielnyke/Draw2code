@@ -102,7 +102,7 @@ const PLANS = () => {
 };
 
 /** Owner-only self-check: which server settings are in place (no secrets are returned). */
-async function health() {
+async function health(user) {
   const out = {
     firebaseProject: fbEnv('FIREBASE_PROJECT_ID'),
     ai: (({ provider, label, models, keyName, configured }) => ({ provider, label, models, keyName, configured }))(require('./_ai').info()),
@@ -114,9 +114,16 @@ async function health() {
   if (!db) { out.database.error = 'Firebase project settings are missing (FIREBASE_API_KEY / FIREBASE_PROJECT_ID).'; return out; }
   try {
     await db.doc('meta/ping').get();
+    if (user && user.uid) {
+      // Writes and reads back a signed record under the owner's own account: proves firestore.rules are published.
+      const ref = db.doc('users/' + user.uid + '/billing/health');
+      await ref.set({ at: Date.now() });
+      const back = await ref.get();
+      if (!back.exists) throw new Error('The server could not read back what it saved. Check BILLING_SECRET / the AI key in Vercel.');
+    }
     out.database.ok = true;
   } catch (e) {
-    out.database.error = /NOT_FOUND|does not exist/i.test(String(e && e.message)) ? 'Firestore database is not created yet (Firebase Console > Firestore Database > Create database).' : String((e && e.message) || e).slice(0, 160);
+    out.database.error = /NOT_FOUND|does not exist/i.test(String(e && e.message)) ? 'Firestore database is not created yet (Firebase Console > Firestore Database > Create database).' : /PERMISSION_DENIED|permission|insufficient/i.test(String(e && e.message)) ? 'Firestore rules are not published yet (Firebase Console > Firestore Database > Rules > paste firestore.rules > Publish).' : String((e && e.message) || e).slice(0, 160);
   }
   return out;
 }
