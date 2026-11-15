@@ -32,7 +32,7 @@ function system() {
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return send(res, 405, { error: 'Method not allowed' }); }
   const cfg = ai.info();
-  if (!cfg.configured) return send(res, 500, { error: 'AI service is not configured. Set ' + cfg.keyName + ' in Vercel (or choose another provider with AI_PROVIDER).' });
+  if (!cfg.configured) return send(res, 500, { error: 'AI service is not configured. Set GEMINI_API_KEY (or GOOGLE_API_KEY) in Vercel.' });
 
   const user = await verifyToken(bearer(req));
   if (!user) return send(res, 401, { error: 'Please sign in again to continue.' });

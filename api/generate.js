@@ -143,7 +143,7 @@ module.exports = async function handler(req, res) {
   }
 
   const cfg = ai.info();
-  if (!cfg.configured) return send(res, 500, { error: 'AI service is not configured. Set ' + cfg.keyName + ' in Vercel (or choose another provider with AI_PROVIDER).' });
+  if (!cfg.configured) return send(res, 500, { error: 'AI service is not configured. Set GEMINI_API_KEY (or GOOGLE_API_KEY) in Vercel.' });
   if (!admin.fbEnv('FIREBASE_API_KEY')) return send(res, 500, { error: 'Server is not configured. Set FIREBASE_API_KEY in Vercel.' });
 
   const auth = String(req.headers.authorization || '');

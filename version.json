@@ -1,9 +1,19 @@
 {
   "base": "2.4",
-  "build": 12,
+  "build": 14,
   "released": "2026-11-15",
-  "releasedAt": "2026-11-15T21:03:54+08:00",
+  "releasedAt": "2026-11-15T21:14:10+08:00",
   "releases": [
+    {
+      "version": "2.4.14",
+      "at": "2026-11-15T21:14:10+08:00",
+      "note": "Use Gemini exclusively for AI requests."
+    },
+    {
+      "version": "2.4.13",
+      "at": "2026-11-15T21:14:09+08:00",
+      "note": "Use Gemini exclusively for all AI requests."
+    },
     {
       "version": "2.4.12",
       "at": "2026-11-15T21:03:54+08:00",

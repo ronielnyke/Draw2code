@@ -166,7 +166,7 @@ async function bootFirebase() {
     cfg = { firebase: FB_DEFAULT, ai: true };
   }
   state.aiReady = cfg.ai !== false;
-  if (!state.aiReady) showSetupError('<strong>AI is not configured.</strong> Add <code>' + (cfg.aiKey || 'GEMINI_API_KEY or OPENAI_API_KEY') + '</code> in Vercel environment variables and redeploy. Saving and editing still work.');
+  if (!state.aiReady) showSetupError('<strong>AI is not configured.</strong> Add <code>' + (cfg.aiKey || 'GEMINI_API_KEY') + '</code> in Vercel environment variables and redeploy. Saving and editing still work.');
 
   try {
     const [app, auth, fs] = await Promise.all([

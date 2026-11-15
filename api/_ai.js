@@ -1,10 +1,6 @@
 'use strict';
-// One AI layer for the whole system: Gemini (Google) or ChatGPT (OpenAI).
-// Claude credentials may remain configured, but Claude is not selected or called.
-// If AI_PROVIDER is unset or set to anthropic, providers are tried in order: gemini, openai.
-//
-//   gemini    : GEMINI_API_KEY
-//   openai    : OPENAI_API_KEY
+// Gemini is the only AI provider used by the system.
+//   gemini : GEMINI_API_KEY (or GOOGLE_API_KEY)
 // Models per quality level can be set with <PROVIDER>_MODEL_LOW / _STANDARD / _HIGH, or one
 // <PROVIDER>_MODEL for all levels. See DEFAULT_MODEL below.
 //
@@ -25,20 +21,15 @@ const BASE_OUTPUT_TOKENS = () => Number(process.env.MAX_OUTPUT_TOKENS || 16000);
 const outputTokens = (q) => Math.round(BASE_OUTPUT_TOKENS() * (QUALITY[q] || QUALITY.standard).outputX);
 
 const DEFAULT_MODEL = {
-  anthropic: { low: 'claude-haiku-5-5', standard: 'claude-sonnet-5-5', high: 'claude-opus-5-5' },
   gemini: { low: 'gemini-3.8-flash', standard: 'gemini-3.8-flash', high: 'gemini-3.8-flash' },
-  openai: { low: 'gpt-5.5', standard: 'gpt-5.5', high: 'gpt-5.5' }, // OpenAI: same model, different reasoning effort
 };
 const FALLBACK_MODELS = {
-  anthropic: ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'],
   gemini: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
-  openai: ['gpt-4.1', 'gpt-4o', 'gpt-5'],
 };
-const PROVIDER_ORDER = ['gemini', 'openai'];
+const PROVIDER_ORDER = ['gemini'];
 const providerCooldowns = new Map();
-const KEY_NAME = { anthropic: 'ANTHROPIC_API_KEY', gemini: 'GEMINI_API_KEY', openai: 'OPENAI_API_KEY' };
-const LABEL = { anthropic: 'Claude', gemini: 'Gemini', openai: 'ChatGPT (OpenAI)' };
-const ALIAS = { claude: 'anthropic', google: 'gemini', chatgpt: 'openai', gpt: 'openai' };
+const KEY_NAME = { gemini: 'GEMINI_API_KEY' };
+const LABEL = { gemini: 'Gemini' };
 const QUOTA_ERROR = /insufficient_quota|billing|quota|credit balance|credit.{0,30}(?:low|exhausted|limit)|(?:out of|no) credits?|resource[_ ]exhausted|usage limit|payment required/i;
 
 // Reads a Vercel variable; ignores stray spaces, quotes and a pasted "NAME=" prefix.
@@ -46,11 +37,7 @@ const env = (n) => String(process.env[n] || '').trim().replace(new RegExp('^' + 
 const keyFor = (p) => env(KEY_NAME[p]) || (p === 'gemini' ? env('GOOGLE_API_KEY') : '');
 
 function pickProvider() {
-  const want = env('AI_PROVIDER').toLowerCase();
-  const p = ALIAS[want] || want;
-  if ((p === 'gemini' || p === 'openai') && keyFor(p)) return p;
-  for (const c of PROVIDER_ORDER) if (keyFor(c)) return c;
-  return p === 'openai' ? 'openai' : 'gemini';
+  return 'gemini';
 }
 
 function modelFor(provider, quality) {
@@ -63,9 +50,9 @@ function configuredProviders() {
   return PROVIDER_ORDER.filter((provider) => keyFor(provider)).map((provider) => ({ provider, label: LABEL[provider] }));
 }
 
-function info(quality, forced) {
+function info(quality) {
   const q = QUALITY[quality] ? quality : 'standard';
-  const provider = forced || pickProvider();
+  const provider = pickProvider();
   return {
     provider,
     label: LABEL[provider],
@@ -82,44 +69,8 @@ function info(quality, forced) {
 const parts = (content) => (typeof content === 'string' ? [{ type: 'text', text: content }] : content);
 
 function buildRequest(cfg, { system, messages, maxTokens }) {
-  if (cfg.provider === 'anthropic') {
-    return {
-      url: 'https://api.anthropic.com/v1/messages',
-      headers: { 'content-type': 'application/json', 'x-api-key': cfg.key, 'anthropic-version': '2023-06-01' },
-      body: {
-        model: cfg.model,
-        max_tokens: maxTokens,
-        stream: true,
-        system,
-        messages: messages.map((m) => ({
-          role: m.role,
-          content: parts(m.content).map((p) => (p.type === 'image'
-            ? { type: 'image', source: { type: 'base64', media_type: p.mime, data: p.data } }
-            : { type: 'text', text: p.text })),
-        })),
-      },
-    };
-  }
-  // Gemini and GPT-5 class models "think" before answering, and those thinking tokens count
-  // against the output limit, so they get a bigger budget than Claude.
+  // Gemini thinking tokens count against the output budget.
   const budget = Math.min(maxTokens * 2, 64000);
-  if (cfg.provider === 'openai') {
-    const body = {
-      model: cfg.model,
-      stream: true,
-      max_completion_tokens: budget,
-      messages: [{ role: 'system', content: system }].concat(messages.map((m) => ({
-        role: m.role,
-        content: m.role === 'assistant'
-          ? parts(m.content).map((p) => p.text).join('')
-          : parts(m.content).map((p) => (p.type === 'image'
-            ? { type: 'image_url', image_url: { url: 'data:' + p.mime + ';base64,' + p.data } }
-            : { type: 'text', text: p.text })),
-      }))),
-    };
-    if (env('OPENAI_REASONING_EFFORT').toLowerCase() !== 'off' && /^(gpt-5|o\d)/.test(cfg.model)) body.reasoning_effort = QUALITY[cfg.quality].effort;
-    return { url: 'https://api.openai.com/v1/chat/completions', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + cfg.key }, body };
-  }
   const gen = { maxOutputTokens: budget };
   if (env('GEMINI_THINKING_LEVEL')) gen.thinkingConfig = { thinkingLevel: env('GEMINI_THINKING_LEVEL') };
   return {
@@ -147,23 +98,8 @@ function friendlyError(cfg, status, text) {
   return { status: 502, message: 'The AI service returned an error (' + status + ').' };
 }
 
-/** Handles one parsed stream event; calls onText(text) and fills state.stop / state.error. */
-function handleEvent(cfg, ev, onText, state) {
-  if (cfg.provider === 'anthropic') {
-    if (ev.type === 'content_block_delta' && ev.delta && ev.delta.type === 'text_delta') onText(ev.delta.text);
-    else if (ev.type === 'message_delta' && ev.delta && ev.delta.stop_reason) state.stop = ev.delta.stop_reason === 'max_tokens' ? 'max_tokens' : '';
-    else if (ev.type === 'error') state.error = (ev.error && ev.error.message) || 'The AI service reported an error.';
-    return;
-  }
-  if (cfg.provider === 'openai') {
-    if (ev.error) { state.error = ev.error.message || 'The AI service reported an error.'; return; }
-    const ch = ev.choices && ev.choices[0];
-    if (!ch) return;
-    if (ch.delta && typeof ch.delta.content === 'string' && ch.delta.content) onText(ch.delta.content);
-    if (ch.finish_reason === 'length') state.stop = 'max_tokens';
-    else if (ch.finish_reason === 'content_filter') state.error = 'The AI blocked this response. Try a different image or wording.';
-    return;
-  }
+/** Handles one parsed Gemini stream event; calls onText(text) and fills state.stop / state.error. */
+function handleEvent(ev, onText, state) {
   if (ev.error) { state.error = ev.error.message || 'The AI service reported an error.'; return; }
   if (ev.promptFeedback && ev.promptFeedback.blockReason) { state.error = 'The AI blocked this request (' + ev.promptFeedback.blockReason + '). Try a different image or wording.'; return; }
   const c = ev.candidates && ev.candidates[0];
@@ -179,8 +115,7 @@ function handleEvent(cfg, ev, onText, state) {
  * { ok:true, read(onText) } where read() streams text and resolves to { stop, error }.
  */
 async function open(args) {
-  // Uses the chosen provider first. If its key is rejected, has no credit, or its models are unavailable, the next
-  // provider that has a key in Vercel is tried automatically, so any working AI key keeps the system running.
+  // Gemini is the only provider. Unsupported Gemini models are retried inside openOne().
   const first = info(args.quality).provider;
   const configured = PROVIDER_ORDER.filter((p) => keyFor(p));
   const ready = configured.filter((p) => (providerCooldowns.get(p) || 0) <= Date.now());
@@ -193,16 +128,15 @@ async function open(args) {
   };
   let lastFail = null;
   for (let i = 0; i < order.length; i++) {
-    const provider = order[i];
-    const r = await openOne(args, provider);
+    const r = await openOne(args);
     if (!r.ok) {
       lastFail = r;
-      if (!(args.signal && args.signal.aborted)) cool(provider, r.message);
+      if (!(args.signal && args.signal.aborted)) cool(first, r.message);
       if (args.signal && args.signal.aborted) return r;
       continue;
     }
 
-    providerCooldowns.delete(provider);
+    providerCooldowns.delete(first);
     return {
       ok: true,
       async read(onText) {
@@ -212,19 +146,18 @@ async function open(args) {
 
         if (state.error) lastFail = { ok: false, status: 502, message: state.error };
         else lastFail = { ok: false, status: 502, message: 'The AI provider returned no text.' };
-        cool(provider, lastFail.message);
+        cool(first, lastFail.message);
 
         for (let j = i + 1; j < order.length; j++) {
-          const nextProvider = order[j];
-          const next = await openOne(args, nextProvider);
+          const next = await openOne(args);
           if (!next.ok) {
             lastFail = next;
-            if (!(args.signal && args.signal.aborted)) cool(nextProvider, next.message);
+            if (!(args.signal && args.signal.aborted)) cool(first, next.message);
             if (args.signal && args.signal.aborted) break;
             continue;
           }
 
-          providerCooldowns.delete(nextProvider);
+          providerCooldowns.delete(first);
           let nextEmitted = false;
           const nextState = await next.read((text) => { nextEmitted = true; onText(text); });
           if (nextEmitted || (args.signal && args.signal.aborted)) return nextState;
@@ -233,7 +166,7 @@ async function open(args) {
             status: 502,
             message: nextState.error || 'The AI provider returned no text.',
           };
-          cool(nextProvider, lastFail.message);
+          cool(first, lastFail.message);
         }
 
         return { stop: '', error: lastFail.message };
@@ -243,9 +176,9 @@ async function open(args) {
   return lastFail;
 }
 
-async function openOne({ system, messages, maxTokens, signal, quality, providerTimeoutMs }, provider) {
-  const cfg = info(quality, provider);
-  if (!cfg.configured) return { ok: false, status: 500, message: 'AI service is not configured. Set GEMINI_API_KEY (or GOOGLE_API_KEY) or OPENAI_API_KEY in Vercel.' };
+async function openOne({ system, messages, maxTokens, signal, quality, providerTimeoutMs }) {
+  const cfg = info(quality);
+  if (!cfg.configured) return { ok: false, status: 500, message: 'AI service is not configured. Set GEMINI_API_KEY (or GOOGLE_API_KEY) in Vercel.' };
   // If a model name is not available on this account (404 / "model not found"), try other current models of the same
   // provider before giving up. A model the owner set in Vercel (<PROVIDER>_MODEL...) is tried first.
   const tryModels = [cfg.model].concat((FALLBACK_MODELS[cfg.provider] || []).filter((m) => m !== cfg.model));
@@ -319,7 +252,7 @@ async function openOne({ system, messages, maxTokens, signal, quality, providerT
         let data = '';
         for (const l of b.split('\n')) if (l.startsWith('data:')) data += l.slice(5).trim();
         if (!data || data === '[DONE]') return;
-        try { handleEvent(cfg, JSON.parse(data), emitText, state); } catch (e) { /* ignore a broken event */ }
+        try { handleEvent(JSON.parse(data), emitText, state); } catch (e) { /* ignore a broken event */ }
       };
       try {
         const reader = up.body.getReader();
