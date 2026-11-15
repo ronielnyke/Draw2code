@@ -1,9 +1,14 @@
 {
   "base": "2.4",
-  "build": 9,
+  "build": 10,
   "released": "2026-11-15",
-  "releasedAt": "2026-11-15T20:33:43+08:00",
+  "releasedAt": "2026-11-15T20:47:43+08:00",
   "releases": [
+    {
+      "version": "2.4.10",
+      "at": "2026-11-15T20:47:43+08:00",
+      "note": "Gemini and ChatGPT are preferred; Claude remains as a backup provider."
+    },
     {
       "version": "2.4.9",
       "at": "2026-11-15T20:33:43+08:00",

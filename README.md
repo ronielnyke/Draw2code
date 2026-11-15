@@ -34,7 +34,7 @@ Storage is not needed: the source image is compressed and stored in Firestore.
 | `FIREBASE_APP_ID` | Firebase web `appId` |
 | `FIREBASE_MESSAGING_SENDER_ID` | optional |
 | AI key (one is enough) | `GEMINI_API_KEY` (Google Gemini) **or** `OPENAI_API_KEY` (ChatGPT) **or** `ANTHROPIC_API_KEY` (Claude). Server-side only. |
-| `AI_PROVIDER` | `gemini`, `openai` or `anthropic`. Optional: if empty, the first configured key is used in this order: Gemini, OpenAI, Claude. |
+| `AI_PROVIDER` | Optional preference for `gemini` or `openai`. Gemini and OpenAI are always preferred over Claude when configured; Claude stays as the last fallback. |
 
 Optional model overrides: `<PROVIDER>_MODEL_LOW|STANDARD|HIGH` or `<PROVIDER>_MODEL` (see the AI quality note above). Model names change often; if you see "model was not found", set the `*_MODEL` variable to a current model from your provider's docs. Optional too: `OPENAI_REASONING_EFFORT=off` (skip the reasoning setting if your model rejects it), `GEMINI_THINKING_LEVEL`, `RATE_LIMIT_PER_HOUR` (default `20` generations per user), `MAX_OUTPUT_TOKENS` (default `16000`).
 
@@ -118,7 +118,7 @@ A floating **Help** button (bottom-right, every page) opens an AI chat for clien
 
 ## 8. One AI layer (Gemini / ChatGPT / Claude)
 
-The generator (`/api/generate`), the AI Debugger (`/api/debug`) and the Help assistant (`/api/assistant`) all go through `api/_ai.js`. If the selected provider reports exhausted quota, a rejected key/model, or a temporary outage, the server tries the next configured provider; without `AI_PROVIDER`, preference is Gemini, OpenAI, then Claude. Provider keys must be set as `GEMINI_API_KEY` (or `GOOGLE_API_KEY`), `OPENAI_API_KEY`, and/or `ANTHROPIC_API_KEY` in Vercel Production, followed by a redeploy. The owner Account setup panel shows which provider keys the deployed server detects. After deploying, press **Test AI now (real request)** to confirm a live request works. Notes: Gemini does not accept GIF images (JPG, PNG, WEBP only); Gemini and GPT-5 models "think" first, so they get a larger output budget than Claude for the same `MAX_OUTPUT_TOKENS`.
+The generator (`/api/generate`), the AI Debugger (`/api/debug`) and the Help assistant (`/api/assistant`) all go through `api/_ai.js`. Gemini is preferred, then ChatGPT/OpenAI, with Claude retained last as a backup—even if `AI_PROVIDER=anthropic`. `AI_PROVIDER=gemini` or `AI_PROVIDER=openai` can choose between the two primary providers. If a provider reports exhausted quota, a rejected key/model, a temporary outage, a stream error, or no first response, the server tries the next configured provider. Provider keys must be set as `GEMINI_API_KEY` (or `GOOGLE_API_KEY`), `OPENAI_API_KEY`, and/or `ANTHROPIC_API_KEY` in Vercel Production, followed by a redeploy. The owner Account setup panel shows which provider keys the deployed server detects. After deploying, press **Test AI now (real request)** to confirm a live request works. Notes: Gemini does not accept GIF images (JPG, PNG, WEBP only); Gemini and GPT-5 models "think" first, so they get a larger output budget than Claude for the same `MAX_OUTPUT_TOKENS`.
 
 ## 9. Payments (GCash via PayMongo)
 

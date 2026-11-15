@@ -49,7 +49,7 @@ const keyFor = (p) => env(KEY_NAME[p]) || (p === 'gemini' ? env('GOOGLE_API_KEY'
 function pickProvider() {
   const want = env('AI_PROVIDER').toLowerCase();
   const p = ALIAS[want] || want;
-  if (KEY_NAME[p] && keyFor(p)) return p;
+  if ((p === 'gemini' || p === 'openai') && keyFor(p)) return p;
   for (const c of PROVIDER_ORDER) if (keyFor(c)) return c;
   if (KEY_NAME[p]) return p;
   return 'anthropic';
