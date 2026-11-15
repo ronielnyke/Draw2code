@@ -9,10 +9,6 @@
 const admin = require('./_admin');
 const ai = require('./_ai');
 
-// Free plan (after the 7-day trial): simple code only, even if the user asks for more.
-const SIMPLE_MODE = `
-
-SIMPLE MODE (free plan). Build a simple, clean, single-page website with basic HTML, CSS and a little plain JavaScript. Keep the code short and easy to read. Do NOT add advanced features: no animations or animation libraries, no complex JavaScript, no login or accounts, payments, backend or API calls, charts, maps, or third-party libraries. If the instructions ask for an advanced feature, build a simple static version of it instead.`;
 const MAX_IMAGE_CHARS = 3500000;
 const MAX_PREV_BYTES = 400000;
 
@@ -158,7 +154,7 @@ module.exports = async function handler(req, res) {
 
   const framework = FRAMEWORKS[body.framework] ? body.framework : 'bootstrap';
 
-  // Allowance (free 10 / plan limits, refilled 24h after they are all used). Checked and used atomically; fails closed.
+  // Paid-plan allowance, refilled 24h after it is used up. Checked atomically; fails closed.
   let gate;
   try { gate = await admin.reserveUse(uid, framework, user); } catch (e) {
     console.error('reserveUse failed:', e && e.message);
@@ -179,7 +175,7 @@ module.exports = async function handler(req, res) {
   res.on('close', () => ac.abort());
 
   const up = await ai.open({
-    system: systemPrompt(framework) + (gate.simple ? SIMPLE_MODE : ''),
+    system: systemPrompt(framework),
     messages: [{ role: 'user', content }],
     maxTokens: ai.outputTokens(gate.quality),
     quality: gate.quality,

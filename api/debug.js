@@ -2,7 +2,7 @@
 // POST /api/debug  { messages:[{role,content}], code?, error? }
 // Streams a plain-text explanation (like a chat assistant) of why code errored and how to fix it.
 const ai = require('./_ai');
-const { send, verifyToken, bearer, readBody, getPlan, isOwner, qualityFor, status } = require('./_admin');
+const { send, verifyToken, bearer, readBody, getPlan, isOwner, qualityFor } = require('./_admin');
 
 const hits = new Map();
 function limited(uid, pro) {
@@ -38,10 +38,9 @@ module.exports = async function handler(req, res) {
   if (!user) return send(res, 401, { error: 'Please sign in again to continue.' });
   const owner = isOwner(user);
   const plan = owner ? { pro: true } : await getPlan(user.uid);
-  if (!owner && !plan.pro) {
-    try { const st = await status(user.uid); if (st.mode === 'expired') return send(res, 402, { error: 'Your 7-day free trial has ended. Subscribe to a plan to keep using the AI Debugger.', upgrade: true }); } catch (e) { /* fail open */ }
-  }
-  if (!owner && limited(user.uid, plan.pro)) return send(res, 429, { error: plan.pro ? 'Hourly limit reached. Try again later.' : 'Free debug limit reached (15/hour). Subscribe to a paid plan for more.' });
+  if (!owner && plan.unknown) return send(res, 503, { error: 'We could not verify your active plan. Please try again shortly.' });
+  if (!owner && !plan.pro) return send(res, 402, { error: 'An active paid plan is required to use the AI Debugger. Choose Starter, Pro, or Business to continue.', upgrade: true });
+  if (!owner && limited(user.uid, plan.pro)) return send(res, 429, { error: 'Hourly limit reached. Try again later.' });
 
   const body = readBody(req);
   if (!body) return send(res, 400, { error: 'Invalid request body.' });

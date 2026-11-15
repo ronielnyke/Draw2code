@@ -94,7 +94,10 @@ function buildRequest(cfg, { system, messages, maxTokens }) {
 /** Turns a provider HTTP error into { status (for our client), message }. */
 function friendlyError(cfg, status, text) {
   const t = String(text || '');
-  if (QUOTA_ERROR.test(t) && status !== 401) return { status: 502, message: cfg.label + ' account has no credit or quota left. Add billing / credit to the ' + cfg.label + ' account.' };
+  if (QUOTA_ERROR.test(t) && status !== 401) return {
+    status: 429,
+    message: cfg.label + ' API quota or rate limit for the configured Google project has been reached. Owner access does not bypass Google limits. Check Google AI Studio / Cloud billing and quotas, or retry after the quota resets.',
+  };
   if (status === 401 || status === 403 || /API key not valid|API_KEY_INVALID|invalid x-api-key|Incorrect API key/i.test(t)) return { status: 502, message: 'AI credentials were rejected. Check ' + cfg.keyName + '.' };
   if (status === 404) return { status: 502, message: 'AI model "' + cfg.model + '" was not found. Check ' + cfg.modelEnv + '.' };
   if (status === 429 || status === 529 || status === 503) return { status: 503, message: 'The AI service is busy. Please try again in a moment.' };

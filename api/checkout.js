@@ -1,7 +1,7 @@
 'use strict';
 // POST /api/checkout  { plan: 'monthly' | 'yearly' }  -> { url }
 // Creates a PayMongo Checkout Session that accepts GCash.
-const { send, verifyToken, bearer, readBody, getDb, PLANS } = require('./_admin');
+const { send, verifyToken, bearer, readBody, getDb, isOwner, PLANS } = require('./_admin');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return send(res, 405, { error: 'Method not allowed' }); }
@@ -10,6 +10,7 @@ module.exports = async function handler(req, res) {
 
   const user = await verifyToken(bearer(req));
   if (!user) return send(res, 401, { error: 'Please sign in again to continue.' });
+  if (isOwner(user)) return send(res, 409, { error: 'The verified owner already has unlimited access. No payment is needed.' });
 
   const body = readBody(req) || {};
   const planKey = PLANS()[body.plan] ? body.plan : 'pro_monthly';

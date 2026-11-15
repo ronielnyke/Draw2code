@@ -151,7 +151,7 @@
 .to-grid b { font: 700 1.1rem var(--font-display); }
 .to-eff { font-size: .8rem; color: var(--muted); }
 
-/* ---- Premium polish: footer, developer card, trial notice ---- */
+/* ---- Premium polish: footer and developer card ---- */
 .site-footer { position: relative; overflow: hidden; }
 .site-footer::before { content: ""; position: absolute; top: 0; left: 50%; width: min(720px, 80%); height: 1px; transform: translateX(-50%); background: linear-gradient(90deg, transparent, var(--brand, #7c5cff), transparent); }
 .site-footer::after { content: ""; position: absolute; top: -140px; left: 50%; width: 520px; height: 220px; transform: translateX(-50%); background: radial-gradient(closest-side, rgba(124, 92, 255, .18), transparent); pointer-events: none; }

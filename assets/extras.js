@@ -1,7 +1,7 @@
 // DRAW2CODE AI v2 — pages router, plans/GCash, ROI calculator, AI Debugger, Help assistant, version check.
 // Runs next to app.js and talks to it through window.D2C and the d2c:* events.
 
-const FALLBACK_VERSION = '2.4.7'; // only a last resort; the real number is automatic (see initVersion)
+const FALLBACK_VERSION = '2.4.20'; // only a last resort; the real number is automatic (see initVersion)
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -25,7 +25,7 @@ const TITLES = {
   license: 'License · DRAW2CODE AI',
 };
 
-const ex = { free: null, cfg: { payments: true, live: true }, plan: { pro: false, expiresAt: 0, used: 0, limit: 10, configured: false, payments: false }, tiers: { starter: { label: 'Starter', monthly: 150, yearly: 1000, gens: 30 }, pro: { label: 'Pro', monthly: 300, yearly: 1500, gens: 100 }, business: { label: 'Business', monthly: 500, yearly: 2000, gens: 250 } }, period: 'monthly', chat: [], busy: null, lastError: '' };
+const ex = { cfg: { payments: true, live: true }, plan: { pro: false, mode: 'unpaid', expiresAt: 0, used: 0, limit: 0, frameworks: [] }, tiers: { starter: { label: 'Starter', monthly: 150, yearly: 1000, gens: 30 }, pro: { label: 'Pro', monthly: 300, yearly: 1500, gens: 100 }, business: { label: 'Business', monthly: 500, yearly: 2000, gens: 250 } }, period: 'monthly', chat: [], busy: null, lastError: '' };
 
 /* ---------------------------------------------------------------- Router */
 function currentRoute() {
@@ -45,14 +45,23 @@ function route() {
   if (page) $$('.reveal', page).forEach((el) => requestAnimationFrame(() => el.classList.add('in')));
   if (name === 'account') refreshPlan().then(renderAccount);
   if (name === 'pricing') renderPricing();
+  if (name === 'debug') refreshPlan().then(renderGuards);
   if (name === 'tools') refreshPlan().then(renderGuards).then(calcTools);
   renderGuards();
 }
 
 function renderGuards() {
   const u = D2C() && D2C().state.user;
+  const canUseAi = !!(u && (ex.plan.owner || ex.plan.pro));
   $('#debugLocked').classList.toggle('d-none', !!u);
-  $('#debugApp').classList.toggle('d-none', !u);
+  $('#debugPlanLocked').classList.toggle('d-none', !u || canUseAi);
+  $('#debugApp').classList.toggle('d-none', !canUseAi);
+  $('#debugPlanTitle').textContent = ex.plan.unknown ? 'Plan status unavailable' : 'An active paid plan is required';
+  $('#debugPlanCopy').textContent = ex.plan.unknown
+    ? 'We could not verify your plan right now. Please try again from your Account page.'
+    : 'Choose Starter, Pro, or Business to use the AI Debugger. The verified owner has unlimited app access.';
+  $('#debugPlanLink').textContent = ex.plan.unknown ? 'Check account status' : 'View plans';
+  $('#debugPlanLink').href = ex.plan.unknown ? '#/account' : '#/pricing';
   $('#accountLocked').classList.toggle('d-none', !!u);
   $('#accountApp').classList.toggle('d-none', !u);
   $('#toolsSignin').classList.toggle('d-none', !!u);
@@ -131,10 +140,13 @@ async function api(path, opts = {}) {
 }
 
 async function refreshPlan() {
-  if (!D2C() || !D2C().state.user) { ex.plan = { pro: false, mode: 'trial', expiresAt: 0, used: 0, limit: 10, frameworks: ['bootstrap', 'vanilla'] }; renderPlanChip(); return ex.plan; }
+  if (!D2C() || !D2C().state.user) { ex.plan = { pro: false, mode: 'unpaid', expiresAt: 0, used: 0, limit: 0, frameworks: [] }; renderPlanChip(); return ex.plan; }
   try {
     ex.plan = await api('/api/billing');
-  } catch (e) { /* keep previous */ }
+  } catch (e) {
+    console.error('Plan status failed:', e && e.message);
+    ex.plan = { pro: false, owner: false, mode: 'unknown', unknown: true, expiresAt: 0, used: 0, limit: 0, frameworks: [] };
+  }
   renderPlanChip();
   return ex.plan;
 }
@@ -155,15 +167,14 @@ function renderAccount() {
   $('#acctName').textContent = u.displayName || (u.email || '').split('@')[0] || '—';
   $('#acctEmail').textContent = u.email || '—';
   $('#acctPlan').innerHTML = '<span class="plan-chip' + (ex.plan.pro || ex.plan.owner ? ' pro' : '') + '">' + (ex.plan.pro || ex.plan.owner ? '<i class="bi bi-gem"></i> ' : '') + esc(planName()) + '</span>';
-  const tr = ex.plan.trial;
-  $('#acctExpLabel').textContent = ex.plan.pro ? 'Active until' : ex.plan.mode === 'expired' ? 'Free trial' : 'Free trial ends';
-  $('#acctExpiry').textContent = ex.plan.owner ? 'Never (owner)' : ex.plan.pro ? fmtDate(ex.plan.expiresAt) : (tr ? (tr.active ? fmtDate(tr.endsAt) : 'Ended · subscribe to continue') : '—');
+  $('#acctExpLabel').textContent = ex.plan.pro ? 'Active until' : 'Plan status';
+  $('#acctExpiry').textContent = ex.plan.owner ? 'Never (owner)' : ex.plan.pro ? fmtDate(ex.plan.expiresAt) : ex.plan.unknown ? 'Could not verify plan status' : 'No active plan · subscribe to use AI';
   tickCountdown();
   $('#acctUsed').textContent = ex.plan.used || 0;
   $('#acctLimit').textContent = ex.plan.owner ? '∞' : (ex.plan.limit || 0);
   const pct = ex.plan.limit ? Math.min(100, ((ex.plan.used || 0) / ex.plan.limit) * 100) : 0;
   $('#acctBar').style.width = pct + '%';
-  $('#acctReset').textContent = ex.plan.owner ? 'Never needed' : ex.plan.resetAt ? fmtWhen(ex.plan.resetAt) + ' (in ' + fmtLeft(ex.plan.resetAt - Date.now()) + ')' : 'When you use them all, they come back 24 hours later';
+  $('#acctReset').textContent = ex.plan.owner ? 'Never needed' : ex.plan.pro && ex.plan.resetAt ? fmtWhen(ex.plan.resetAt) + ' (in ' + fmtLeft(ex.plan.resetAt - Date.now()) + ')' : ex.plan.pro ? 'When you use them all, they come back 24 hours later' : ex.plan.unknown ? 'Try refreshing your plan status' : 'An active paid plan is required to use AI';
   renderSetup();
 }
 
@@ -175,8 +186,7 @@ function tickCountdown() {
   let end = 0;
   if (p.owner) { el.textContent = 'Unlimited (owner)'; el.classList.remove('low'); return; }
   if (p.pro) end = Number(p.expiresAt) || 0;
-  else if (p.trial && p.trial.active) end = Number(p.trial.endsAt) || 0;
-  if (!end) { el.textContent = p.mode === 'expired' ? 'Ended' : '—'; el.classList.toggle('low', p.mode === 'expired'); return; }
+  if (!end) { el.textContent = p.mode === 'unpaid' ? 'No active plan' : p.mode === 'unknown' ? 'Status unavailable' : '—'; el.classList.toggle('low', p.mode === 'unpaid' || p.mode === 'unknown'); return; }
   const ms = end - Date.now();
   if (ms <= 0) { el.textContent = 'Ended'; el.classList.add('low'); if (!tickCountdown.done) { tickCountdown.done = true; refreshPlan(); } return; }
   tickCountdown.done = false;
@@ -249,24 +259,32 @@ async function verifyPayment(showErrors) {
 /* --------------------------------------------------------------- Pricing */
 function tierLabel() { if (ex.plan.owner) return 'Owner'; const t = ex.tiers[ex.plan.tier]; return t ? t.label : 'Pro'; }
 /** Name of the plan the user is on right now (shown in chips and the account page). */
-function planName() { return ex.plan.pro || ex.plan.owner ? tierLabel() : ex.plan.mode === 'expired' ? 'Trial ended' : 'Free trial'; }
+function planName() { return ex.plan.pro || ex.plan.owner ? tierLabel() : ex.plan.unknown ? 'Plan status unavailable' : 'Free account'; }
 
 const fmtWhen = (ms) => new Date(ms).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 function fmtLeft(ms) { const m = Math.max(1, Math.ceil(ms / 60000)); return Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; }
 
-/** "7 of 10 generations left" under the Generate button. */
+/** Shows the generation allowance or the paid-plan requirement under Generate. */
 function renderQuota() {
   const el = $('#genQuota');
   if (!el) return;
   const u = D2C() && D2C().state.user;
-  if (!u) { el.textContent = ''; return; }
+  if (!u) { el.textContent = ''; el.classList.remove('empty'); return; }
   const p = ex.plan;
   if (p.owner) { el.innerHTML = '<i class="bi bi-infinity"></i> Unlimited generations (owner)'; return; }
+  if (p.mode === 'unknown') {
+    el.innerHTML = '<i class="bi bi-exclamation-circle"></i> Could not verify your plan. Please retry shortly.';
+    el.classList.add('empty');
+    return;
+  }
+  if (p.mode === 'unpaid') {
+    el.innerHTML = '<i class="bi bi-lock-fill"></i> An active paid plan is required to use AI · <a href="#/pricing">View plans</a>';
+    el.classList.add('empty');
+    return;
+  }
   const left = Math.max(0, (p.limit || 0) - (p.used || 0));
   let t = '<b>' + left + '</b> of ' + (p.limit || 0) + ' generations left';
   if (left === 0 && p.resetAt) t += ' · back in <b>' + fmtLeft(p.resetAt - Date.now()) + '</b> (' + esc(fmtWhen(p.resetAt)) + ')';
-  else if (p.mode === 'expired') t = '<i class="bi bi-lock-fill"></i> Your 7-day free trial has ended · <a href="#/pricing">Subscribe to continue</a>';
-  else if (p.mode === 'trial' && p.trial && p.trial.endsAt) t += ' · trial ends ' + esc(fmtWhen(p.trial.endsAt));
   el.classList.toggle('empty', left === 0);
   el.innerHTML = t;
 }
@@ -280,7 +298,7 @@ function applyFrameworkLocks() {
     const ok = allowed.includes(r.value);
     r.disabled = !ok;
     const row = r.closest('.opt-row');
-    if (row) { row.classList.toggle('locked', !ok); row.title = ok ? '' : 'Not included in your plan'; }
+    if (row) { row.classList.toggle('locked', !ok); row.title = ok ? '' : ex.plan.mode === 'unpaid' ? 'An active paid plan is required to use AI' : 'Not included in your plan'; }
   });
   const cur = radios.find((r) => r.checked);
   if (cur && cur.disabled) { const first = radios.find((r) => !r.disabled); if (first) { first.checked = true; first.dispatchEvent(new Event('change', { bubbles: true })); } }
@@ -298,7 +316,6 @@ async function loadConfig() {
     if (!r.ok) return;
     const j = await r.json();
     if (j.tiers) ex.tiers = { ...ex.tiers, ...j.tiers };
-    if (j.free) ex.free = j.free;
     ex.cfg = { payments: !!j.payments, live: !!j.paymentsLive };
   } catch (e) { /* keep defaults */ }
   renderPricing();
@@ -307,16 +324,15 @@ async function loadConfig() {
 function specHtml(t) {
   if (!t || !t.quality) return '';
   const n = { basic: 1, low: 1, standard: 2, high: 3 }[t.quality] || 1;
-  const th = t.then;
   const k = (x) => Math.round(x.outputTokens / 1000);
-  return '<div><dt>AI quality</dt><dd title="' + esc(t.blurb || '') + '"><span class="q-bars q-' + esc(t.quality) + '"><i class="on"></i><i class="' + (n > 1 ? 'on' : '') + '"></i><i class="' + (n > 2 ? 'on' : '') + '"></i></span> <b>' + esc(t.qualityLabel) + (th ? ' → ' + esc(th.qualityLabel) : '') + '</b></dd></div>'
+  return '<div><dt>AI quality</dt><dd title="' + esc(t.blurb || '') + '"><span class="q-bars q-' + esc(t.quality) + '"><i class="on"></i><i class="' + (n > 1 ? 'on' : '') + '"></i><i class="' + (n > 2 ? 'on' : '') + '"></i></span> <b>' + esc(t.qualityLabel) + '</b></dd></div>'
     + '<div><dt>Speed</dt><dd>' + esc(t.speed) + '</dd></div>'
-    + '<div><dt>Max output</dt><dd>~' + k(t) + 'K' + (th ? ' → ~' + k(th) + 'K' : '') + ' tokens</dd></div>'
-    + '<div class="plan-blurb">' + esc(t.blurb || '') + (th ? ' After the 7-day trial: ' + esc(th.blurb) : '') + '</div>';
+    + '<div><dt>Max output</dt><dd>~' + k(t) + 'K tokens</dd></div>'
+    + '<div class="plan-blurb">' + esc(t.blurb || '') + '</div>';
 }
 
 function renderPricing() {
-  Object.entries({ free: ex.free, ...ex.tiers }).forEach(([k, t]) => { const el = $('[data-spec="' + k + '"]'); if (el) el.innerHTML = specHtml(t); });
+  Object.entries(ex.tiers).forEach(([k, t]) => { const el = $('[data-spec="' + k + '"]'); if (el) el.innerHTML = specHtml(t); });
   const per = ex.period === 'yearly' ? '/ year' : '/ 30 days';
   Object.entries(ex.tiers).forEach(([k, t]) => {
     const price = $('[data-price="' + k + '"]'), gens = $('[data-gens="' + k + '"]');
@@ -330,7 +346,8 @@ function renderPricing() {
   const signed = D2C() && D2C().state.user;
   $$('.btn-buy').forEach((btn) => {
     const same = ex.plan.pro && ex.plan.tier === btn.dataset.tier;
-    btn.querySelector('span').textContent = !signed ? 'Sign in to subscribe' : same ? 'Renew / extend' : 'Pay with GCash';
+    btn.disabled = !!ex.plan.owner;
+    btn.querySelector('span').textContent = ex.plan.owner ? 'Included for owner' : !signed ? 'Sign in to subscribe' : same ? 'Renew / extend' : 'Pay with GCash';
   });
   $('#buyHint').textContent = ex.plan.owner ? 'Owner account: full access, no payment needed'
     : ex.plan.pro ? tierLabel() + ' active until ' + fmtDate(ex.plan.expiresAt)
@@ -647,7 +664,7 @@ function astWelcome() {
   $('#astLog').innerHTML = '';
   const u = D2C() && D2C().state.user;
   astAdd('assistant', u
-    ? 'Hi! I am your DRAW2CODE AI assistant. Ask me anything, in any language: questions, code, writing, ideas, or help with plans, payments and how to use the system.'
+    ? 'Hi! I am your DRAW2CODE AI assistant. An active paid plan is required for AI replies (the verified owner has unlimited app access). Ask me anything, in any language: questions, code, writing, ideas, or help with plans, payments and how to use the system.'
     : 'Hi! Please sign in first so we can chat. Then you can ask me anything, in any language.');
   ast.chat = [];
   $('#astChips').classList.remove('d-none');
@@ -680,7 +697,12 @@ async function astAsk(q) {
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ messages: ast.chat }),
     });
-    if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || 'The assistant failed (' + res.status + ').'); }
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      const error = new Error(j.error || 'The assistant failed (' + res.status + ').');
+      error.status = res.status;
+      throw error;
+    }
     const reader = res.body.getReader();
     const dec = new TextDecoder();
     for (;;) {
@@ -696,7 +718,8 @@ async function astAsk(q) {
     ast.chat.push({ role: 'assistant', content: out });
   } catch (e) {
     ast.chat.pop();
-    body.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>' + esc(e.message) + '</span>';
+    body.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>' + esc(e.message) + '</span>'
+      + (e.status === 402 ? ' <a href="#/pricing">View plans</a>' : '');
   } finally {
     ast.busy = null;
     $('#astSend').disabled = false;

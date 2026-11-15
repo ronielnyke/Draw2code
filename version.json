@@ -1,9 +1,19 @@
 {
   "base": "2.4",
-  "build": 18,
+  "build": 20,
   "released": "2026-11-15",
-  "releasedAt": "2026-11-15T21:14:10+08:00",
+  "releasedAt": "2026-11-15T22:31:26+08:00",
   "releases": [
+    {
+      "version": "2.4.20",
+      "at": "2026-11-15T22:31:26+08:00",
+      "note": "Require active paid plans for AI features while preserving verified owner access."
+    },
+    {
+      "version": "2.4.19",
+      "at": "2026-11-15T22:18:13+08:00",
+      "note": "Remove the owner Help-chat cap and clarify Google API quota errors."
+    },
     {
       "version": "2.4.18",
       "at": "2026-11-15T22:10:13+08:00",

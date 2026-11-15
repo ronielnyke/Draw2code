@@ -12,11 +12,12 @@ Intellectual Property Code of the Philippines) and by international treaties. No
 ownership is transferred to anyone by use, access, purchase of a plan, or receipt of a copy.
 
 2. LICENSE GRANT TO USERS
-Subject to these terms, and for as long as the user's free trial or paid plan is active, the
-Owner grants the user a limited, non-exclusive, non-transferable, revocable license to use the
-hosted Software through its website. Website code generated for the user from the user's own
-uploaded images belongs to the user, who is responsible for having the right to use the images
-they upload.
+Subject to these terms, the Owner grants the user a limited, non-exclusive,
+non-transferable, revocable license to access the hosted Software through its website.
+Using any AI feature requires an active paid Starter, Pro or Business plan, except for the
+verified Owner account. A free account may use non-AI account and project-management features.
+Website code generated for the user from the user's own uploaded images belongs to the user,
+who is responsible for having the right to use the images they upload.
 
 3. RESTRICTIONS
 Without the Owner's prior written permission, you may NOT:
@@ -26,14 +27,15 @@ Without the Owner's prior written permission, you may NOT:
      allows it despite this restriction;
   c. host your own copy of the Software, or offer it or a clone of it to others as a service;
   d. remove or change any copyright, owner or license notice;
-  e. bypass, tamper with or share access to the trial limit, plan limits, payment checks or
+  e. bypass, tamper with or share access to plan limits, payment checks or
      other access controls;
   f. use the Software for unlawful purposes or to infringe the rights of others.
 
 4. PAID PLANS
 Paid plans are one-time payments for the period shown at checkout (30 days or 1 year), with no
-automatic renewal. Access ends when the period ends. The 7-day free trial is available once per
-account. The Owner may change prices and plans for future purchases.
+automatic renewal. AI access ends when the paid period ends. There is no free AI trial; the
+verified Owner account has unlimited app-level access. The Owner may change prices and plans
+for future purchases.
 
 5. THIRD-PARTY COMPONENTS
 The Software uses third-party components (for example Bootstrap, Bootstrap Icons, Firebase,
@@ -60,4 +62,4 @@ These terms are governed by the laws of the Republic of the Philippines. Dispute
 brought before the proper courts of Iloilo, Philippines.
 
 Contact: Roniel Nyke Gonzales — ronielnyke@gmail.com
-Version of this license: 1.0 (November 14, 2026)
+Version of this license: 1.1 (November 15, 2026)

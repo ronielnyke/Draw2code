@@ -4,7 +4,7 @@
 // so no keys are hard-coded in the repository. (Firebase web keys are not secrets;
 // access is protected by Firebase Auth + Firestore rules.)
 
-const { TIERS, fbEnv, TRIAL_QUALITY, BASIC_QUALITY, FREE_LIMIT, WINDOW_MS } = require('./_admin');
+const { TIERS, fbEnv, WINDOW_MS } = require('./_admin');
 const ai = require('./_ai');
 
 // What a quality level really means (shown on the pricing cards).
@@ -52,7 +52,6 @@ module.exports = function handler(req, res) {
   }
 
   res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
-  return send(res, 200, { firebase, ai: ai.info().configured, aiKey: ai.info().keyName, payments: Boolean((process.env.PAYMONGO_SECRET_KEY || '').trim()), trialDays: 7, freeGenerations: FREE_LIMIT(), windowHours: WINDOW_MS / 3600000, paymentsLive: (process.env.PAYMONGO_SECRET_KEY || '').trim().startsWith('sk_live_'),
-    free: { ...spec(TRIAL_QUALITY) },
+  return send(res, 200, { firebase, ai: ai.info().configured, aiKey: ai.info().keyName, payments: Boolean((process.env.PAYMONGO_SECRET_KEY || '').trim()), windowHours: WINDOW_MS / 3600000, paymentsLive: (process.env.PAYMONGO_SECRET_KEY || '').trim().startsWith('sk_live_'),
     tiers: Object.fromEntries(Object.entries(TIERS()).map(([k, t]) => [k, { label: t.label, monthly: t.monthly, yearly: t.yearly, gens: t.gens, react: t.react, tools: t.tools, ...spec(t.quality) }])) });
 };

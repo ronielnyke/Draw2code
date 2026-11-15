@@ -5,11 +5,12 @@
 const ai = require('./_ai');
 const versionApi = require('./version');
 const Q = () => ai.QUALITY;
-const { send, verifyToken, bearer, readBody, getDb, status, isOwner, TIERS, TRIAL_DAYS, TRIAL_QUALITY, FREE_LIMIT } = require('./_admin');
+const { send, verifyToken, bearer, readBody, getDb, status, getPlan, isOwner, TIERS } = require('./_admin');
 
 const hits = new Map();
 function limited(uid, owner) {
-  const limit = owner ? 300 : 60;
+  if (owner) return false;
+  const limit = 60;
   const now = Date.now();
   const arr = (hits.get(uid) || []).filter((t) => now - t < 3600000);
   if (arr.length >= limit) { hits.set(uid, arr); return true; }
@@ -29,9 +30,10 @@ async function userContext(user) {
     const st = await status(user.uid);
     const left = Math.max(0, st.limit - st.used);
     const back = st.resetAt ? ' They used all of them; they come back on ' + new Date(st.resetAt).toISOString().replace('T', ' ').slice(0, 16) + ' UTC (24 hours after the last one was used).' : '';
+    if (st.mode === 'unknown') return 'The user\'s plan details could not be loaded. Do not guess their usage.';
     if (st.mode === 'paid') return 'The user is on the ' + (TIERS()[st.tier] || TIERS().pro).label + ' plan, active until ' + fmt(st.expiresAt) + '. They have ' + left + ' of ' + st.limit + ' generations left.' + back;
-    if (st.mode === 'trial') return 'The user is on the free trial (ends ' + fmt(st.trial.endsAt) + '). They have ' + left + ' of ' + st.limit + ' generations left.' + back;
-    return 'The user\'s 7-day free trial has ended. They cannot generate until they subscribe to a paid plan (Starter, Pro or Business) with GCash.';
+    if (st.mode === 'unpaid') return 'The user has no active paid plan and cannot use AI. Direct them to choose Starter, Pro, or Business.';
+    return 'The user has no active paid plan and cannot use AI. Direct them to choose Starter, Pro, or Business.';
   } catch (e) {
     return 'The user\'s plan details could not be loaded. Do not guess their usage.';
   }
@@ -47,17 +49,17 @@ function system(ctx, ver) {
     '',
     'WHAT THE SYSTEM DOES:',
     '- DRAW2CODE AI turns a screenshot, a hand-drawn sketch or a single UI component image into a working website (HTML, CSS, JavaScript).',
-    '- Output frameworks: Bootstrap, Vanilla (plain HTML/CSS/JS) and React (React is for the Pro and Business plans only; Starter and the free trial get Bootstrap and Vanilla).',
+    '- Output frameworks: Bootstrap, Vanilla (plain HTML/CSS/JS) and React (React is for Pro and Business; Starter gets Bootstrap and Vanilla).',
     '- In the Studio page: upload an image, choose input type and framework, press generate, then use the live preview, edit the code, and download everything as a ZIP.',
     '- Projects are saved to the user\'s account and sync across devices (My Projects page).',
-    '- AI Debugger page: paste an error and code to get an explanation and fix. Errors in the live preview can also be sent to it. Limit: 15 questions per hour on the free trial, 120 per hour on paid plans.',
+    '- AI Debugger page: paste an error and code to get an explanation and fix. Errors in the live preview can also be sent to it. An active paid plan is required; paid users get up to 120 questions per hour.',
     '- Pro Tools (Pro and Business plans only, not Starter): Business ROI calculator and a BIR tax estimator (planning estimate, not tax advice).',
-    '- A floating Help button (this assistant) is available to every signed-in user.',
+    '- A floating Help button (this assistant) is visible to signed-in users; an active paid plan is required to receive AI responses.',
     '- Sign in with Google or email and password.',
     '- Current app version: ' + ver + ' (shown in the top bar, footer, Account page and What\'s new). It goes up automatically with every update. The system is developed by Roniel Nyke Gonzales (Sibaguan, Lambunao, Iloilo, Philippines) and is under a proprietary license (see the License page).',
     '',
     'PLANS AND PRICES (exact, never change them):',
-    '- Free: PHP 0. Every account gets ' + FREE_LIMIT() + ' generations. For the first ' + TRIAL_DAYS + ' days (the trial) the free plan can make Bootstrap or Vanilla output at AI quality ' + Q()[TRIAL_QUALITY].label + '. The free trial lasts only ' + TRIAL_DAYS + ' days. After that, generating stops until the user subscribes to a paid plan. Projects already made can still be previewed, edited and downloaded as a ZIP.',
+    '- All AI features (Generator, Help assistant, and AI Debugger) require an active paid Starter, Pro, or Business plan. The verified owner has unlimited app access. There is no free AI trial.',
     '- When a user uses up all their generations, they come back 24 hours after the moment the last one was used (for example used up at 3 PM, back at 3 PM the next day). This applies to every plan.',
     rows,
     '- AI quality is real, not a label: Low uses a fast lightweight model with a smaller output limit; Standard uses a balanced model; High uses the most capable model with the deepest reasoning and the largest output limit (slower). The user\'s plan decides the level.',
@@ -87,6 +89,11 @@ module.exports = async function handler(req, res) {
   const user = await verifyToken(bearer(req));
   if (!user) return send(res, 401, { error: 'Please sign in to chat with the assistant.' });
   const owner = isOwner(user);
+  if (!owner) {
+    const plan = await getPlan(user.uid);
+    if (plan.unknown) return send(res, 503, { error: 'We could not verify your active plan. Please try again shortly.' });
+    if (!plan.pro) return send(res, 402, { error: 'An active paid plan is required to use the Help assistant. Choose Starter, Pro, or Business to continue.', upgrade: true });
+  }
   if (limited(user.uid, owner)) return send(res, 429, { error: 'You sent many messages. Please try again in a little while.' });
 
   const body = readBody(req);

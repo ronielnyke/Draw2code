@@ -66,7 +66,7 @@ function readBody(req) {
 }
 
 // ---------------------------------------------------------------- Owner
-// The owner has full access: no free-trial limit, no monthly limit, no payment.
+// The verified owner has unlimited app-level access and does not need a paid plan.
 // Identified ONLY by a Firebase-VERIFIED email (Google sign-in verifies it), so nobody can
 // become owner by registering that email address with a password they chose.
 // Override with env OWNER_EMAIL (comma-separated for more than one owner).
@@ -74,15 +74,10 @@ const OWNER_EMAILS = () => (process.env.OWNER_EMAIL || 'ronielnyke@gmail.com').s
 const isOwner = (user) => !!(user && user.emailVerified && user.email && OWNER_EMAILS().includes(String(user.email).toLowerCase()));
 
 // ---------------------------------------------------------------- Pricing
-// Free  : 7-day trial ONLY (Bootstrap + Vanilla, Low quality, 10 generations).
-//         After 7 days generation stops until the user subscribes to a paid plan.
 // Paid  : 3 tiers, each monthly (30 days) or yearly (365 days). Amounts are in PHP.
 // Generations come back 24 hours after the moment they were ALL used up (WINDOW_MS).
-const TRIAL_DAYS = 7;
 const WINDOW_MS = 24 * 3600 * 1000;
-const TRIAL_QUALITY = 'low';   // AI quality of the free trial
-const BASIC_QUALITY = 'basic'; // kept for compatibility (no longer used for generation)
-const FREE_LIMIT = () => 10;
+const BASIC_QUALITY = 'basic'; // retained for compatibility with existing quality helpers
 const TIERS = () => ({
   starter:  { label: 'Starter',  monthly: 150, yearly: 1000, gens: 30,  react: false, tools: false, quality: 'low' },
   pro:      { label: 'Pro',      monthly: 300, yearly: 1500, gens: 100, react: true,  tools: true, quality: 'standard' },
@@ -156,8 +151,7 @@ async function getPlan(uid) {
 function frameworksFor(mode, tier) {
   if (mode === 'owner') return ['bootstrap', 'vanilla', 'react'];
   if (mode === 'paid') return (TIERS()[tier] || TIERS().pro).react ? ['bootstrap', 'vanilla', 'react'] : ['bootstrap', 'vanilla'];
-  if (mode === 'trial') return ['bootstrap', 'vanilla'];
-  return []; // 'expired': the 7-day trial is over, a paid plan is needed
+  return [];
 }
 
 /** Rolling allowance: the count returns to 0 once resetAt has passed (24h after it was used up). */
@@ -172,23 +166,19 @@ const waitText = (ms) => {
   return Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
 };
 
-/** What a user is on right now and how much allowance is left. Creates the trial clock on first sight. */
+/** What a user is on right now and how much allowance is left. */
 async function status(uid) {
   const now = Date.now();
   const plan = await getPlan(uid);
   const db = getDb();
-  if (!db) return { mode: plan.pro ? 'paid' : 'trial', tier: plan.tier, expiresAt: plan.expiresAt, used: 0, limit: plan.pro ? PRO_LIMIT(plan.tier) : FREE_LIMIT(), resetAt: 0, trial: null, unknown: true };
-  const trialRef = db.doc('users/' + uid + '/billing/trial');
-  const [ts, us] = await Promise.all([trialRef.get(), db.doc('users/' + uid + '/billing/usage').get()]);
-  let startedAt = ts.exists ? ts.data().startedAt : 0;
-  if (!startedAt) { startedAt = now; await trialRef.set({ startedAt }).catch(() => {}); }
-  const endsAt = startedAt + TRIAL_DAYS * 86400000;
-  const trialActive = now < endsAt;
-  const mode = plan.pro ? 'paid' : trialActive ? 'trial' : 'expired';
-  const scope = plan.pro ? (TIERS()[plan.tier] ? plan.tier : 'pro') : 'free';
-  const limit = plan.pro ? PRO_LIMIT(scope) : FREE_LIMIT();
-  const n = norm(us.exists ? us.data() : null, scope, now);
-  return { mode, tier: plan.pro ? scope : '', expiresAt: plan.expiresAt, used: n.count, limit, resetAt: n.resetAt, trial: { startedAt, endsAt, active: trialActive } };
+  if (!db || !plan.pro) {
+    const unknown = !db || !!plan.unknown;
+    return { mode: unknown ? 'unknown' : 'unpaid', tier: plan.tier, expiresAt: plan.expiresAt, used: 0, limit: 0, resetAt: 0, unknown };
+  }
+  const scope = TIERS()[plan.tier] ? plan.tier : 'pro';
+  const usage = await db.doc('users/' + uid + '/billing/usage').get();
+  const n = norm(usage.exists ? usage.data() : null, scope, now);
+  return { mode: 'paid', tier: scope, expiresAt: plan.expiresAt, used: n.count, limit: PRO_LIMIT(scope), resetAt: n.resetAt, unknown: false };
 }
 
 /**
@@ -201,53 +191,46 @@ async function reserveUse(uid, framework, user) {
   if (!db) return { ok: false, status: 503, error: 'The system is not fully set up yet. Please contact the site owner.', upgrade: false };
   const planRef = db.doc('users/' + uid + '/billing/plan');
   const usageRef = db.doc('users/' + uid + '/billing/usage');
-  const trialRef = db.doc('users/' + uid + '/billing/trial');
   return db.runTransaction(async (t) => {
     const now = Date.now();
-    const [ps, us, ts] = await Promise.all([t.get(planRef), t.get(usageRef), t.get(trialRef)]);
+    const [ps, us] = await Promise.all([t.get(planRef), t.get(usageRef)]);
     const pd = ps.exists ? ps.data() : null;
     const exp = pd && pd.expiresAt ? Number(pd.expiresAt) : 0;
     const pro = !!(pd && pd.plan === 'pro' && exp > now);
-    const tier = pro ? (TIERS()[pd.tier] ? pd.tier : 'pro') : '';
-    let startedAt = ts.exists ? ts.data().startedAt : 0;
-    if (!startedAt) { startedAt = now; t.set(trialRef, { startedAt }); }
-    const trialActive = now < startedAt + TRIAL_DAYS * 86400000;
-    const mode = pro ? 'paid' : trialActive ? 'trial' : 'expired';
-
-    if (mode === 'expired') {
-      return { ok: false, status: 402, error: 'Your 7-day free trial has ended. Subscribe to a plan (pay with GCash) to keep generating.', reason: 'trial_ended', upgrade: true };
+    if (!pro) {
+      return { ok: false, status: 402, error: 'An active paid plan is required to use AI. Choose Starter, Pro, or Business to continue.', reason: 'subscription_required', upgrade: true };
     }
-    if (!frameworksFor(mode, tier).includes(framework)) {
-      const msg = mode === 'trial' || (mode === 'paid' && framework === 'react')
+    const tier = TIERS()[pd.tier] ? pd.tier : 'pro';
+    if (!frameworksFor('paid', tier).includes(framework)) {
+      const msg = framework === 'react'
           ? 'React output is for the Pro and Business plans. Choose Bootstrap or Vanilla, or upgrade.'
           : 'This output is not included in your plan.';
       return { ok: false, status: 402, error: msg, reason: 'plan', upgrade: true };
     }
 
-    const scope = pro ? tier : 'free';
-    const limit = pro ? PRO_LIMIT(tier) : FREE_LIMIT();
+    const scope = tier;
+    const limit = PRO_LIMIT(tier);
     const n = norm(us.exists ? us.data() : null, scope, now);
     if (n.count >= limit) {
       const back = n.resetAt || now + WINDOW_MS;
-      const who = pro ? 'on your ' + (TIERS()[tier].label) + ' plan' : 'on the free plan';
-      return { ok: false, status: 402, reason: 'limit', resetAt: back, upgrade: true, error: 'You used all ' + limit + ' generations ' + who + '. They come back in ' + waitText(back - now) + (pro ? '. Upgrade for a bigger allowance.' : '. Or subscribe for more.') };
+      return { ok: false, status: 402, reason: 'limit', resetAt: back, upgrade: true, error: 'You used all ' + limit + ' generations on your ' + TIERS()[tier].label + ' plan. They come back in ' + waitText(back - now) + '. Upgrade for a bigger allowance.' };
     }
     const count = n.count + 1;
     t.set(usageRef, { scope, count, resetAt: count >= limit ? now + WINDOW_MS : 0 });
     return {
-      ok: true, kind: mode, scope, limit,
-      quality: pro ? TIERS()[tier].quality : mode === 'trial' ? TRIAL_QUALITY : BASIC_QUALITY,
+      ok: true, kind: 'paid', scope, limit,
+      quality: TIERS()[tier].quality,
       simple: false,
     };
   });
 }
 
-/** AI quality level a user gets: owner high, paid by tier, trial low, free after the trial basic. */
+/** AI quality level a user gets: owner high, otherwise by active paid tier. */
 async function qualityFor(user) {
   if (isOwner(user)) return 'high';
   try {
     const st = await status(user.uid);
-    return st.mode === 'paid' ? (TIERS()[st.tier] || TIERS().pro).quality : st.mode === 'trial' ? TRIAL_QUALITY : BASIC_QUALITY;
+    return st.mode === 'paid' ? (TIERS()[st.tier] || TIERS().pro).quality : BASIC_QUALITY;
   } catch (e) { return BASIC_QUALITY; }
 }
 
@@ -286,4 +269,4 @@ async function grantPro(uid, sessionId, planKey, paidAmount) {
   });
 }
 
-module.exports = { status, frameworksFor, qualityFor, TRIAL_QUALITY, BASIC_QUALITY, health, fbEnv, FIREBASE_DEFAULTS, isOwner, getDb, send, verifyToken, bearer, readBody, getPlan, reserveUse, refundUse, grantPro, PLANS, TIERS, FREE_LIMIT, PRO_LIMIT, TRIAL_DAYS, WINDOW_MS };
+module.exports = { status, frameworksFor, qualityFor, BASIC_QUALITY, health, fbEnv, FIREBASE_DEFAULTS, isOwner, getDb, send, verifyToken, bearer, readBody, getPlan, reserveUse, refundUse, grantPro, PLANS, TIERS, PRO_LIMIT, WINDOW_MS };
