@@ -1,5 +1,4 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "rewrites": [
     { "source": "/__/auth/:path*", "destination": "https://raw2code.firebaseapp.com/__/auth/:path*" },
