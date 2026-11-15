@@ -57,9 +57,9 @@ function modelFor(provider, quality) {
   return env(P + '_MODEL_' + quality.toUpperCase()) || env(P + '_MODEL') || DEFAULT_MODEL[provider][quality];
 }
 
-function info(quality) {
+function info(quality, forced) {
   const q = QUALITY[quality] ? quality : 'standard';
-  const provider = pickProvider();
+  const provider = forced || pickProvider();
   return {
     provider,
     label: LABEL[provider],
@@ -172,8 +172,23 @@ function handleEvent(cfg, ev, onText, state) {
  * Returns { ok:false, status, message } if the provider refused it, otherwise
  * { ok:true, read(onText) } where read() streams text and resolves to { stop, error }.
  */
-async function open({ system, messages, maxTokens, signal, quality }) {
-  const cfg = info(quality);
+async function open(args) {
+  // Uses the chosen provider first. If its key is rejected, has no credit, or its models are unavailable, the next
+  // provider that has a key in Vercel is tried automatically, so any working AI key keeps the system running.
+  const first = info(args.quality).provider;
+  const order = [first].concat(['anthropic', 'gemini', 'openai'].filter((p) => p !== first && keyFor(p)));
+  let firstFail = null;
+  for (const p of order) {
+    const r = await openOne(args, p);
+    if (r.ok) return r;
+    firstFail = firstFail || r;
+    if (!r.retry) break;
+  }
+  return firstFail;
+}
+
+async function openOne({ system, messages, maxTokens, signal, quality }, provider) {
+  const cfg = info(quality, provider);
   if (!cfg.configured) return { ok: false, status: 500, message: 'AI service is not configured. Set ' + cfg.keyName + ' in Vercel (or choose another provider with AI_PROVIDER).' };
   // If a model name is not available on this account (404 / "model not found"), try other current models of the same
   // provider before giving up. A model the owner set in Vercel (<PROVIDER>_MODEL...) is tried first.
@@ -193,7 +208,8 @@ async function open({ system, messages, maxTokens, signal, quality }) {
     const modelProblem = up.status === 404 || (up.status === 400 && /model/i.test(text) && /not (found|supported)|does not exist|invalid/i.test(text));
     if (modelProblem && i < tryModels.length - 1) continue;
     const f = friendlyError(used, up.status, text);
-    return { ok: false, status: f.status, message: f.message };
+    const retry = up.status === 401 || up.status === 403 || up.status === 404 || up.status === 402 || /insufficient_quota|billing|quota|credit balance|API key not valid/i.test(text) || modelProblem;
+    return { ok: false, status: f.status, message: f.message, retry };
   }
   return {
     ok: true,
