@@ -106,7 +106,7 @@ module.exports = async function handler(req, res) {
   try {
     const ctx = await userContext(user);
     const ver = versionApi.floorVersion();
-    const up = await ai.open({ system: system(ctx, 'v' + ver), messages: msgs, maxTokens: 2500, quality: chatQuality(), providerTimeoutMs: 10000, signal: ac.signal });
+    const up = await ai.open({ system: system(ctx, 'v' + ver), messages: msgs, maxTokens: 2500, quality: chatQuality(), providerTimeoutMs: 20000, signal: ac.signal });
     if (!up.ok) {
       if (timedOut) return send(res, 504, { error: 'The assistant took too long to respond. Please try again.' });
       console.error('DRAW2CODE assistant provider error:', up.status, up.message);

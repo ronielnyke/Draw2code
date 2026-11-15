@@ -122,7 +122,6 @@ async function health(user) {
   const db = getDb();
   if (!db) { out.database.error = 'Firebase project settings are missing (FIREBASE_API_KEY / FIREBASE_PROJECT_ID).'; return out; }
   try {
-    await db.doc('meta/ping').get();
     if (user && user.uid) {
       // Writes and reads back a signed record under the owner's own account: proves firestore.rules are published.
       const ref = db.doc('users/' + user.uid + '/billing/health');

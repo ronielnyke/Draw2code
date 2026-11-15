@@ -197,7 +197,6 @@ function renderSetup() {
     item(h.ai.configured, 'AI provider: <b>' + esc(h.ai.label) + '</b> · configured keys: ' + esc((h.ai.configuredProviders || []).join(', ') || 'none') + ' · low: ' + esc(h.ai.models.low) + ' · standard: ' + esc(h.ai.models.standard) + ' · high: ' + esc(h.ai.models.high), 'Add GEMINI_API_KEY (or GOOGLE_API_KEY) in Vercel Production, then redeploy.'),
     item(h.database.ok, 'Firestore database reachable by the server', esc(h.database.error)),
     item(!!h.paymongo, 'PayMongo key (' + (h.paymongo === 'live' ? 'LIVE: real money' : h.paymongo === 'test' ? 'TEST mode: no real money yet' : 'missing') + ')', 'Add PAYMONGO_SECRET_KEY (use sk_live_ for real payments).'),
-    item(h.paymongo !== 'test', 'Payments are LIVE (sk_live_)', 'Currently a test key. Swap to sk_live_ when ready for real GCash payments.'),
     item(h.webhook, 'PayMongo webhook secret (PAYMONGO_WEBHOOK_SECRET)', 'PayMongo Dashboard, Developers, Webhooks. Event checkout_session.payment.paid.'),
   ].join('') + '<li class="test"><button type="button" class="btn btn-ghost btn-sm" id="btnTestAi"><i class="bi bi-lightning-charge-fill me-1"></i>Test AI now (real request)</button> <span id="aiTestResult"></span></li>';
   $('#btnTestAi').addEventListener('click', testAi);

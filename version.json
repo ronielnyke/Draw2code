@@ -1,9 +1,14 @@
 {
   "base": "2.4",
-  "build": 15,
+  "build": 16,
   "released": "2026-11-15",
   "releasedAt": "2026-11-15T21:14:10+08:00",
   "releases": [
+    {
+      "version": "2.4.16",
+      "at": "2026-11-15T21:46:35+08:00",
+      "note": "Fix owner setup diagnostics and allow more time for Gemini assistant startup."
+    },
     {
       "version": "2.4.15",
       "at": "2026-11-15T21:30:31+08:00",
