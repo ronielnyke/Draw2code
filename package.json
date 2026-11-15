@@ -1,0 +1,12 @@
+{
+  "name": "draw2code-ai",
+  "version": "2.4.7",
+  "private": true,
+  "description": "DRAW2CODE AI - image to website code generator",
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {},
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Roniel Nyke Gonzales"
+}

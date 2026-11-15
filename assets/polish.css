@@ -1,0 +1,114 @@
+/* DRAW2CODE AI — responsive polish layer (loaded last). Visual only: no behaviour changes. */
+
+/* ---------- Base: no sideways scroll, crisp text, safe areas ---------- */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { min-height: 100vh; overflow-x: clip; line-height: 1.6; text-rendering: optimizeLegibility; }
+img, svg, video, canvas { max-width: 100%; height: auto; }
+iframe { max-width: 100%; }
+h1, h2, h3 { text-wrap: balance; overflow-wrap: anywhere; }
+p, li { overflow-wrap: break-word; }
+pre, code, .code-view, textarea { max-width: 100%; }
+pre { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.glass-nav { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+.site-footer { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
+.ast-fab { right: max(1.1rem, env(safe-area-inset-right)); bottom: max(1.1rem, env(safe-area-inset-bottom)); }
+
+/* ---------- Desktop refinements ---------- */
+@media (min-width: 992px) {
+  .container, .container-xl { max-width: 1180px; }
+  .section { padding: 6rem 0; }
+  .panel, .plan-card, .step-card, .feature-card { transition: transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s var(--ease); }
+  .plan-card:hover { transform: translateY(-6px); border-color: rgba(124, 92, 255, .5); box-shadow: 0 28px 60px -28px rgba(124, 92, 255, .6); }
+  .navbar .nav-link.active { color: var(--text); background: var(--surface-2); box-shadow: inset 0 -2px 0 var(--brand); }
+}
+@media (min-width: 1400px) { .container, .container-xl { max-width: 1280px; } }
+
+/* ---------- Tablet & phone ---------- */
+@media (max-width: 991.98px) {
+  .glass-nav .navbar-collapse { margin-top: .6rem; padding: .6rem; border: 1px solid var(--border); border-radius: 18px; background: var(--nav-bg); max-height: calc(100vh - 90px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .navbar .nav-link { padding: .75rem 1rem !important; font-size: 1rem; }
+  .nav-actions { flex-wrap: wrap; gap: .5rem; }
+  .nav-actions .btn-brand { flex: 1 1 auto; }
+  .hero { padding-top: 7rem; padding-bottom: 3rem; text-align: center; }
+  .hero .lead-text { margin-left: auto; margin-right: auto; }
+  .hero-points { justify-items: center; }
+  .hero-visual { margin-top: 1.5rem; }
+  .section-head { margin-bottom: 2.2rem; }
+  .ws-top { flex-direction: column; align-items: stretch; }
+  .ws-tabs { width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .ws-tabs::-webkit-scrollbar { display: none; }
+  .ws-tab { white-space: nowrap; flex: 1 0 auto; }
+  .ws-actions { justify-content: flex-start; }
+  .workspace { min-height: 520px; }
+}
+@media (max-width: 767.98px) {
+  .dev-card { width: 100%; }
+  .site-footer .row > div { text-align: center !important; }
+  .footer-links { grid-template-columns: repeat(2, 1fr); text-align: center; }
+  .site-footer .brand { justify-content: center; }
+  .footer-bottom { text-align: center; align-items: center; }
+  .lic-owner { justify-content: center; text-align: center; }
+  .lic-id { margin-left: 0; text-align: center; width: 100%; }
+}
+@media (max-width: 575.98px) {
+  .container, .container-xl { padding-left: 16px; padding-right: 16px; }
+  .section { padding: 3.2rem 0; }
+  .display-title { line-height: 1.1; }
+  .lead-text { font-size: 1.02rem; }
+  .section-head h2 { font-size: clamp(1.55rem, 7vw, 2rem); }
+  .section-head p { font-size: .97rem; }
+  .panel { border-radius: 18px; padding: 1rem; }
+  .plan-card { border-radius: 20px; }
+  .plan-price b { font-size: 2.4rem; }
+  .btn-lg { width: 100%; margin-left: 0 !important; margin-top: .5rem; }
+  .text-center > .btn-lg + .btn-lg { margin-top: .6rem; }
+  .hv-cards { grid-template-columns: repeat(2, 1fr); }
+  .hv-code { position: relative; right: auto; bottom: auto; width: 100%; margin-top: .8rem; }
+  .acct-row { flex-wrap: wrap; gap: .2rem .8rem; }
+  .countdown { font-size: 1.05rem; }
+  .gen-quota { font-size: .8rem; line-height: 1.5; }
+  .timeline { padding-left: .2rem; }
+  .modal-dialog { margin: .75rem; }
+  .accordion-button { padding: .9rem 1rem; font-size: .96rem; }
+  .global-banners { padding: 0 .6rem; }
+  .global-banners .alert { font-size: .88rem; }
+  .ast-fab span { display: none; }
+  .ast-fab { padding: .85rem; border-radius: 50%; }
+}
+@media (max-width: 380px) {
+  .brand { font-size: .95rem; }
+  .brand { gap: .4rem; min-width: 0; }
+  .ver-chip { font-size: .6rem; padding: .1rem .35rem; }
+  .footer-links { grid-template-columns: 1fr; }
+}
+
+/* ---------- Touch devices: comfortable tap targets, no iOS zoom on inputs ---------- */
+@media (pointer: coarse) {
+  .btn, .nav-link, .dropdown-item, .ws-tab, .pill-btn, .accordion-button { min-height: 44px; }
+  .btn-icon, .pw-eye { min-width: 44px; min-height: 44px; }
+  .form-control, .form-select, textarea { font-size: 16px; min-height: 46px; }
+  .feature-card:hover, .step-card:hover, .plan-card:hover { transform: none; }
+}
+
+/* ---------- Landscape phones ---------- */
+@media (max-height: 480px) and (orientation: landscape) {
+  .hero { padding-top: 5.5rem; }
+  .glass-nav .navbar-collapse { max-height: calc(100vh - 70px); }
+  .ast-panel { height: calc(100vh - 1rem); }
+}
+
+/* ---------- Print: license and plans read cleanly ---------- */
+@media print {
+  .aurora, .glass-nav, .site-footer, .ast-fab, .global-banners { display: none !important; }
+  body { background: #fff; color: #000; }
+}
+@media (max-width: 991.98px) { .hero-visual { overflow-x: clip; } }
+
+/* Version is always visible: top bar (every size), mobile menu, footer, account, Help chat. */
+.brand { flex-wrap: nowrap; white-space: nowrap; }
+.ver-chip { flex: none; white-space: nowrap; }
+.nav-ver .nav-link b { color: var(--brand-2); }
+.ast-title small [data-version] { font-weight: 600; opacity: 1; }
+
+.ver-date { color: var(--muted); white-space: nowrap; }
+.nav-ver [data-version-date] { margin-left: .25rem; }

@@ -1,0 +1,43 @@
+{
+  "base": "2.4",
+  "build": 7,
+  "released": "2026-11-15",
+  "releasedAt": "2026-11-15T17:30:00+08:00",
+  "releases": [
+    {
+      "version": "2.4.7",
+      "at": "2026-11-15T17:30:00+08:00",
+      "note": "Billing and version history now work directly through Firestore. Full version history with dates."
+    },
+    {
+      "version": "2.4.6",
+      "at": "2026-11-15T13:40:00+08:00",
+      "note": "Improvements and fixes"
+    },
+    {
+      "version": "2.4.0",
+      "at": "2026-11-14T12:00:00+08:00",
+      "note": "7-day free trial, live plan countdown, license page, version with date everywhere, Help assistant in any language, better phone/tablet layout."
+    },
+    {
+      "version": "2.3.0",
+      "at": "2026-11-14T10:00:00+08:00",
+      "note": "10 generations in the free trial, refilled 24 hours after they are all used. Studio shows how many are left."
+    },
+    {
+      "version": "2.2.0",
+      "at": "2026-11-14T08:00:00+08:00",
+      "note": "New plans (Free trial, Starter, Pro, Business), real AI quality levels, Gemini/ChatGPT/Claude support, Help assistant, safer GCash checkout."
+    },
+    {
+      "version": "2.1.0",
+      "at": "2026-11-14T06:00:00+08:00",
+      "note": "Pro Tools: Business ROI calculator and BIR tax estimator. Whole interface in English."
+    },
+    {
+      "version": "2.0.0",
+      "at": "2026-11-14T04:00:00+08:00",
+      "note": "Multi-page layout, Login page with Google, AI Debugger, Pro plan with GCash checkout, live preview error detection."
+    }
+  ]
+}

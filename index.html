@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DRAW2CODE AI — Image to Website Code Generator</title>
+  <meta name="description" content="Upload a website screenshot or hand-drawn sketch and get working HTML, CSS and JavaScript. Preview, edit, save to the cloud and download as ZIP.">
+  <meta name="theme-color" content="#070a14">
+  <meta property="og:title" content="DRAW2CODE AI — Image to Website Code Generator">
+  <meta property="og:description" content="Turn any design, sketch or screenshot into a working website in seconds.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/assets/style.css" rel="stylesheet">
+  <link href="/assets/pages.css" rel="stylesheet">
+  <link href="/assets/polish.css" rel="stylesheet">
+  <script>
+    // Apply saved theme before paint to avoid a flash.
+    try {
+      var t = localStorage.getItem('d2c:theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-bs-theme', t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-xl fixed-top glass-nav" id="nav">
+    <div class="container-xl">
+      <a class="navbar-brand brand" href="#/home" aria-label="DRAW2CODE AI home">
+        <span class="brand-mark"><i class="bi bi-brush-fill"></i></span>
+        <span>DRAW2CODE <b>AI</b></span>
+        <span class="ver-chip" data-version>v2.4.7</span>
+      </a>
+      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" aria-controls="navMenu" aria-expanded="false" aria-label="Toggle navigation">
+        <i class="bi bi-list fs-2"></i>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-xl-1">
+          <li class="nav-item"><a class="nav-link" data-nav="home" href="#/home"><i class="bi bi-house-door me-1"></i>Home</a></li>
+          <li class="nav-item"><a class="nav-link" data-nav="how" href="#/how">How it works</a></li>
+          <li class="nav-item"><a class="nav-link" data-nav="features" href="#/features">Features</a></li>
+          <li class="nav-item"><a class="nav-link" data-nav="studio" href="#/studio">Studio</a></li>
+          <li class="nav-item"><a class="nav-link" data-nav="projects" href="#/projects">My Projects</a></li>
+          <li class="nav-item"><a class="nav-link" data-nav="debug" href="#/debug"><i class="bi bi-bug me-1"></i>AI Debugger</a></li>
+          <li class="nav-item"><a class="nav-link" data-nav="tools" href="#/tools"><i class="bi bi-briefcase me-1"></i>Pro Tools</a></li>
+          <li class="nav-item"><a class="nav-link" data-nav="pricing" href="#/pricing"><i class="bi bi-gem me-1"></i>Pricing</a></li>
+          <li class="nav-item nav-ver d-xl-none"><a class="nav-link" href="#/changelog"><i class="bi bi-tag me-1"></i>Version <b data-version>v2.4.7</b> <small class="text-secondary" data-version-date="short"></small></a></li>
+        </ul>
+        <div class="d-flex align-items-center gap-2 nav-actions">
+          <span class="sync-badge d-none" id="syncBadge" title="Cloud sync status"><i class="bi bi-cloud-check"></i><span>Synced</span></span>
+          <span class="plan-chip d-none" id="planChip"></span>
+          <button class="btn btn-icon" id="themeToggle" type="button" aria-label="Toggle light or dark theme"><i class="bi bi-moon-stars"></i></button>
+          <button class="btn btn-brand btn-sm" id="btnSignIn" type="button"><i class="bi bi-box-arrow-in-right me-1"></i>Sign in</button>
+          <div class="dropdown d-none" id="userMenu">
+            <button class="btn user-chip dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="avatar" id="userAvatar">U</span>
+              <span class="d-none d-md-inline" id="userName">User</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end glass-menu">
+              <li class="px-3 py-2 small text-secondary" id="userEmail">email</li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#/studio"><i class="bi bi-magic me-2"></i>Open Studio</a></li>
+              <li><a class="dropdown-item" href="#/projects"><i class="bi bi-clock-history me-2"></i>My Projects</a></li>
+              <li><a class="dropdown-item" href="#/account"><i class="bi bi-person-badge me-2"></i>Account &amp; Plan</a></li>
+              <li><a class="dropdown-item" href="#/tools"><i class="bi bi-briefcase me-2"></i>Pro Tools</a></li>
+              <li><a class="dropdown-item" href="#/pricing"><i class="bi bi-gem me-2"></i>Plans &amp; upgrade</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><button class="dropdown-item text-danger" id="btnSignOut" type="button"><i class="bi bi-box-arrow-right me-2"></i>Sign out</button></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="global-banners">
+    <div class="alert alert-warning glass-alert d-none" id="setupAlert" role="alert"></div>
+    <div class="alert glass-alert update-banner d-none" id="updateBanner" role="status">
+      <i class="bi bi-arrow-repeat me-2"></i><span id="updateText">A new version of DRAW2CODE AI is available.</span>
+      <button class="btn btn-sm btn-brand ms-3" id="btnReload" type="button">Update now</button>
+    </div>
+  </div>
+
+  <main id="top">
+    <div class="page" data-page="home" hidden>
+    <!-- HERO -->
+    <header class="hero">
+      <div class="container">
+        <div class="row align-items-center g-5">
+          <div class="col-lg-6 reveal">
+            <span class="eyebrow"><i class="bi bi-stars"></i> AI vision · Design to code</span>
+            <h1 class="display-title">Turn any design into a <span class="grad-text">working website.</span></h1>
+            <p class="lead-text">Upload a screenshot or a hand-drawn sketch. DRAW2CODE AI reads the layout, colors and text, then writes real HTML, CSS and JavaScript you can preview, edit and download.</p>
+            <div class="d-flex flex-wrap gap-3 mt-4">
+              <a href="#/studio" class="btn btn-brand btn-lg" id="heroCta"><i class="bi bi-lightning-charge-fill me-2"></i>Open the Studio</a>
+              <a href="#/how" class="btn btn-ghost btn-lg"><i class="bi bi-play-circle me-2"></i>How it works</a>
+            </div>
+            <ul class="hero-points">
+              <li><i class="bi bi-check2-circle"></i> Your projects sync to the cloud — open them on any device</li>
+              <li><i class="bi bi-check2-circle"></i> Bootstrap, vanilla or React output</li>
+              <li><i class="bi bi-check2-circle"></i> Editable code with live preview and ZIP download</li>
+            </ul>
+          </div>
+          <div class="col-lg-6 reveal" style="--d:.15s">
+            <div class="hero-visual" aria-hidden="true">
+              <div class="hv-window">
+                <div class="hv-bar"><i></i><i></i><i></i><span class="hv-url">your-design.png → index.html</span></div>
+                <div class="hv-body">
+                  <div class="hv-sk hv-nav"></div>
+                  <div class="hv-sk hv-h1"></div>
+                  <div class="hv-sk hv-h2"></div>
+                  <div class="hv-row"><div class="hv-sk hv-btn"></div><div class="hv-sk hv-btn alt"></div></div>
+                  <div class="hv-cards"><div class="hv-sk"></div><div class="hv-sk"></div><div class="hv-sk"></div></div>
+                  <div class="hv-scan"></div>
+                </div>
+              </div>
+              <div class="hv-code">
+                <div class="hv-code-top"><span></span><span></span><span></span> style.css</div>
+<pre><code><span class="c-k">.hero</span> {
+  <span class="c-p">display</span>: <span class="c-v">grid</span>;
+  <span class="c-p">gap</span>: <span class="c-v">2rem</span>;
+  <span class="c-p">background</span>: <span class="c-v">linear-gradient(...)</span>;
+}</code></pre>
+              </div>
+              <div class="hv-chip chip-a"><i class="bi bi-image"></i> Upload</div>
+              <div class="hv-chip chip-b"><i class="bi bi-cpu"></i> AI Vision</div>
+              <div class="hv-chip chip-c"><i class="bi bi-file-earmark-code"></i> Code</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+
+    <!-- HOME EXTRAS -->
+    <section class="section pt-0">
+      <div class="container">
+        <div class="stat-strip reveal">
+          <div><b>3</b><span>Code outputs</span></div>
+          <div><b>3</b><span>Design types</span></div>
+          <div><b>1 click</b><span>ZIP download</span></div>
+          <div><b>Cloud</b><span>Synced across devices</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section alt">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow"><i class="bi bi-gem"></i> Plans</span>
+          <h2>Try it free for 7 days, then pay with GCash.</h2>
+          <p>Every new account gets a 7-day free trial with 10 generations. When the trial ends, subscribe to keep generating. Paid plans (Starter, Pro and Business) add bigger allowances, a higher AI quality level (Low, Standard or High), React output and business tools. Prices start at ₱150 for 30 days.</p>
+        </div>
+        <div class="text-center reveal">
+          <a href="#/pricing" class="btn btn-brand btn-lg"><i class="bi bi-gem me-2"></i>See plans &amp; prices</a>
+          <a href="#/debug" class="btn btn-ghost btn-lg ms-2"><i class="bi bi-bug me-2"></i>Try the AI Debugger</a>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <div class="page page-top" data-page="how" hidden>
+    <!-- HOW IT WORKS -->
+    <section class="section" id="how">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">How it works</span>
+          <h2>From picture to production in five steps</h2>
+          <p>No templates and no fake output. Every project is generated from your own design.</p>
+        </div>
+        <div class="row g-4">
+          <div class="col-md-6 col-lg reveal" style="--d:.0s"><div class="step-card"><span class="step-no">01</span><i class="bi bi-cloud-arrow-up"></i><h3>Upload design</h3><p>Drop a screenshot or a hand-drawn website sketch. You can also paste from the clipboard.</p></div></div>
+          <div class="col-md-6 col-lg reveal" style="--d:.07s"><div class="step-card"><span class="step-no">02</span><i class="bi bi-eye"></i><h3>AI image analysis</h3><p>The vision model studies layout, colors, buttons, text, images and sections.</p></div></div>
+          <div class="col-md-6 col-lg reveal" style="--d:.14s"><div class="step-card"><span class="step-no">03</span><i class="bi bi-code-slash"></i><h3>Code generation</h3><p>Real HTML, CSS and JavaScript are written live while you watch.</p></div></div>
+          <div class="col-md-6 col-lg reveal" style="--d:.21s"><div class="step-card"><span class="step-no">04</span><i class="bi bi-window-desktop"></i><h3>Live preview</h3><p>See the website right in the browser on desktop, tablet and mobile widths.</p></div></div>
+          <div class="col-md-12 col-lg reveal" style="--d:.28s"><div class="step-card"><span class="step-no">05</span><i class="bi bi-download"></i><h3>Download project</h3><p>Edit the code, then download every file as a ready-to-deploy ZIP.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    </div>
+
+    <div class="page page-top" data-page="features" hidden>
+    <!-- FEATURES -->
+    <section class="section alt" id="features">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Features</span>
+          <h2>Everything you need, nothing you don't</h2>
+          <p>A complete design-to-code workflow in one clean workspace.</p>
+        </div>
+        <div class="row g-4">
+          <div class="col-sm-6 col-lg-4 reveal"><div class="feature-card"><i class="bi bi-image"></i><h3>Image upload</h3><p>Screenshots, sketches or single components. Drag, drop, browse or paste.</p></div></div>
+          <div class="col-sm-6 col-lg-4 reveal" style="--d:.05s"><div class="feature-card"><i class="bi bi-eye-fill"></i><h3>AI vision</h3><p>A vision-capable model analyzes your design the way a front-end engineer would.</p></div></div>
+          <div class="col-sm-6 col-lg-4 reveal" style="--d:.1s"><div class="feature-card"><i class="bi bi-filetype-html"></i><h3>HTML generator</h3><p>Semantic, accessible and responsive markup that mirrors your design.</p></div></div>
+          <div class="col-sm-6 col-lg-4 reveal"><div class="feature-card"><i class="bi bi-filetype-css"></i><h3>CSS generator</h3><p>Clean styling with matching colors, spacing and typography.</p></div></div>
+          <div class="col-sm-6 col-lg-4 reveal" style="--d:.05s"><div class="feature-card"><i class="bi bi-filetype-js"></i><h3>JavaScript generator</h3><p>Working menus, tabs, forms and interactions — not placeholders.</p></div></div>
+          <div class="col-sm-6 col-lg-4 reveal" style="--d:.1s"><div class="feature-card"><i class="bi bi-display"></i><h3>Live preview</h3><p>Sandboxed preview with desktop, tablet and mobile widths plus fullscreen.</p></div></div>
+          <div class="col-sm-6 col-lg-4 reveal"><div class="feature-card"><i class="bi bi-terminal"></i><h3>Code editor</h3><p>Edit any generated file and watch the preview update. Changes autosave.</p></div></div>
+          <div class="col-sm-6 col-lg-4 reveal" style="--d:.05s"><div class="feature-card"><i class="bi bi-arrow-repeat"></i><h3>Regenerate</h3><p>Describe what to change and the AI improves the existing project.</p></div></div>
+          <div class="col-sm-6 col-lg-4 reveal" style="--d:.1s"><div class="feature-card"><i class="bi bi-file-earmark-zip"></i><h3>Download ZIP</h3><p>Get every project file in one ZIP, ready for Vercel, Netlify or any host.</p></div></div>
+          <div class="col-sm-6 col-lg-6 reveal"><div class="feature-card wide"><i class="bi bi-cloud-check"></i><h3>Cloud sync across devices</h3><p>Projects are stored in Firebase under your account and cached locally. Sign in on another phone or computer and everything is there.</p></div></div>
+          <div class="col-sm-6 col-lg-6 reveal" style="--d:.07s"><div class="feature-card wide"><i class="bi bi-clock-history"></i><h3>Analysis history</h3><p>Every project you generate is saved so you can reopen, improve, duplicate or download it later.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    </div>
+
+    <div class="page page-top" data-page="studio" hidden>
+    <!-- STUDIO -->
+    <section class="section" id="studio">
+      <div class="container-xl">
+        <div class="section-head reveal">
+          <span class="eyebrow">Studio</span>
+          <h2>Build DRAW2CODE projects</h2>
+          <p>Upload a design, choose your output, and generate real code.</p>
+        </div>
+
+
+        <!-- Signed-out state -->
+        <div class="locked-panel reveal" id="studioLocked">
+          <div class="lock-icon"><i class="bi bi-lock-fill"></i></div>
+          <h3>Sign in to open your Studio</h3>
+          <p>Your account keeps every project in the cloud, so the same link works on any device and nothing is lost.</p>
+          <button class="btn btn-brand btn-lg" type="button" id="btnLockedSignIn"><i class="bi bi-box-arrow-in-right me-2"></i>Sign in or create account</button>
+        </div>
+
+        <!-- Signed-in state -->
+        <div class="studio d-none" id="studioApp">
+          <div class="row g-4">
+            <!-- LEFT: controls -->
+            <div class="col-xl-4">
+              <div class="panel">
+                <div class="panel-title"><i class="bi bi-1-circle-fill"></i> Upload design</div>
+                <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a design image">
+                  <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+                  <div class="dz-empty" id="dzEmpty">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    <strong>Drop image here</strong>
+                    <span>or click to browse · or paste with Ctrl+V</span>
+                    <small>PNG, JPG or WEBP</small>
+                  </div>
+                  <div class="dz-preview d-none" id="imgPreviewWrap">
+                    <img id="imgPreview" alt="Uploaded design preview">
+                    <button class="btn btn-sm btn-danger dz-clear" id="btnClearImage" type="button" aria-label="Remove image"><i class="bi bi-x-lg"></i></button>
+                    <span class="dz-meta" id="imgMeta"></span>
+                  </div>
+                </div>
+
+                <div class="panel-title mt-4"><i class="bi bi-2-circle-fill"></i> Design type</div>
+                <div class="opt-grid" id="optInput">
+                  <label class="opt-card"><input type="radio" name="inputType" value="screenshot" checked><span><i class="bi bi-window-stack"></i>Full website<small>screenshot</small></span></label>
+                  <label class="opt-card"><input type="radio" name="inputType" value="sketch"><span><i class="bi bi-pencil-square"></i>Hand-drawn<small>sketch</small></span></label>
+                  <label class="opt-card"><input type="radio" name="inputType" value="component"><span><i class="bi bi-ui-checks-grid"></i>Single UI<small>component</small></span></label>
+                </div>
+
+                <div class="panel-title mt-4"><i class="bi bi-3-circle-fill"></i> Code output</div>
+                <div class="opt-list" id="optFramework">
+                  <label class="opt-row"><input type="radio" name="framework" value="bootstrap" checked><span><b>HTML + CSS + JS + Bootstrap</b><small>Recommended · premium responsive UI</small></span></label>
+                  <label class="opt-row"><input type="radio" name="framework" value="vanilla"><span><b>HTML + CSS + JavaScript</b><small>Plain files, zero dependencies</small></span></label>
+                  <label class="opt-row"><input type="radio" name="framework" value="react"><span><b>React + CSS</b><small>Components, runs without a build step · Pro &amp; Business plans</small></span></label>
+                </div>
+
+                <div class="panel-title mt-4"><i class="bi bi-4-circle-fill"></i> Details</div>
+                <label class="form-label small text-secondary" for="projectName">Project name</label>
+                <input type="text" class="form-control glass-input" id="projectName" maxlength="80" placeholder="e.g. Coffee shop landing page" autocomplete="off">
+                <label class="form-label small text-secondary mt-3" for="extraInstructions">Extra instructions <span class="opacity-75">(optional)</span></label>
+                <textarea class="form-control glass-input" id="extraInstructions" rows="3" maxlength="2000" placeholder="e.g. Use a dark theme and add a pricing section"></textarea>
+
+                <button class="btn btn-brand btn-lg w-100 mt-4" id="btnGenerate" type="button"><i class="bi bi-magic me-2"></i>Generate website</button>
+                <div class="gen-quota" id="genQuota" aria-live="polite"></div>
+
+                <div class="gen-progress d-none" id="genProgress" aria-live="polite">
+                  <div class="d-flex justify-content-between small mb-2"><span id="genStage">Preparing…</span><span id="genChars" class="text-secondary">0 chars</span></div>
+                  <div class="progress" role="progressbar" aria-label="Generation progress"><div class="progress-bar progress-bar-striped progress-bar-animated" id="genBar" style="width:5%"></div></div>
+                  <button class="btn btn-sm btn-ghost mt-3" id="btnCancel" type="button"><i class="bi bi-stop-circle me-1"></i>Cancel</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: workspace -->
+            <div class="col-xl-8">
+              <div class="panel workspace">
+                <div class="ws-top">
+                  <div class="ws-tabs" role="tablist">
+                    <button class="ws-tab active" id="tabPreview" type="button" role="tab" data-pane="preview"><i class="bi bi-window-desktop me-1"></i>Preview</button>
+                    <button class="ws-tab" id="tabCode" type="button" role="tab" data-pane="code"><i class="bi bi-code-slash me-1"></i>Code</button>
+                    <button class="ws-tab" id="tabSource" type="button" role="tab" data-pane="source"><i class="bi bi-image me-1"></i>Source</button>
+                  </div>
+                  <div class="ws-actions">
+                    <span class="save-status" id="saveStatus"></span>
+                    <button class="btn btn-icon" id="btnImprove" type="button" title="Regenerate / improve" aria-label="Regenerate or improve"><i class="bi bi-arrow-repeat"></i></button>
+                    <button class="btn btn-icon" id="btnCopy" type="button" title="Copy current file" aria-label="Copy current file"><i class="bi bi-clipboard"></i></button>
+                    <button class="btn btn-icon" id="btnSave" type="button" title="Save (Ctrl+S)" aria-label="Save project"><i class="bi bi-floppy"></i></button>
+                    <button class="btn btn-icon" id="btnFullscreen" type="button" title="Fullscreen preview" aria-label="Fullscreen preview"><i class="bi bi-arrows-fullscreen"></i></button>
+                    <button class="btn btn-sm btn-brand" id="btnZip" type="button"><i class="bi bi-file-earmark-zip me-1"></i>ZIP</button>
+                    <button class="btn btn-sm btn-ghost" id="btnNew" type="button"><i class="bi bi-plus-lg me-1"></i>New</button>
+                  </div>
+                </div>
+
+                <div class="ws-body">
+                  <div class="ws-empty" id="paneEmpty">
+                    <i class="bi bi-window-sidebar"></i>
+                    <h4>Your generated website appears here</h4>
+                    <p>Upload a design on the left and press <b>Generate website</b>.</p>
+                  </div>
+
+                  <div class="ws-pane d-none" id="panePreview">
+                    <div class="device-bar">
+                      <button class="dev active" data-device="desktop" type="button" aria-label="Desktop"><i class="bi bi-display"></i></button>
+                      <button class="dev" data-device="tablet" type="button" aria-label="Tablet"><i class="bi bi-tablet"></i></button>
+                      <button class="dev" data-device="mobile" type="button" aria-label="Mobile"><i class="bi bi-phone"></i></button>
+                      <span class="dev-label" id="devLabel">Desktop</span>
+                    </div>
+                    <div class="frame-wrap" id="frameWrap">
+                      <iframe id="previewFrame" title="Generated website preview" sandbox="allow-scripts allow-forms allow-modals allow-popups"></iframe>
+                    </div>
+                  </div>
+
+                  <div class="ws-pane d-none" id="paneCode">
+                    <div class="file-tabs" id="fileTabs"></div>
+                    <textarea id="codeEditor" class="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Code editor"></textarea>
+                    <div class="code-info" id="codeInfo"></div>
+                  </div>
+
+                  <div class="ws-pane d-none" id="paneSource">
+                    <div class="source-wrap"><img id="sourceImg" alt="Original design" class="d-none"><p class="text-secondary mb-0" id="sourceNone">No source image is stored for this project.</p></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    </div>
+
+    <div class="page page-top" data-page="projects" hidden>
+    <!-- PROJECTS -->
+    <section class="section alt" id="projects">
+      <div class="container-xl">
+        <div class="section-head reveal">
+          <span class="eyebrow">Analysis history</span>
+          <h2>My projects</h2>
+          <p id="projectsSub">Sign in to see the projects saved to your account.</p>
+        </div>
+        <div class="d-none" id="projectsWrap">
+          <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
+            <div class="search-box"><i class="bi bi-search"></i><input type="search" id="projectSearch" class="form-control glass-input" placeholder="Search projects" aria-label="Search projects"></div>
+            <span class="text-secondary small" id="projectCount">0 projects</span>
+          </div>
+          <div class="row g-4" id="projectGrid"></div>
+          <div class="empty-state d-none" id="projectEmpty"><i class="bi bi-folder2-open"></i><h4>No projects yet</h4><p>Generate your first website in the Studio and it will be saved here automatically.</p><a href="#/studio" class="btn btn-brand">Go to Studio</a></div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- PRICING -->
+    <div class="page page-top" data-page="pricing" hidden>
+      <section class="section" id="pricing">
+        <div class="container">
+          <div class="section-head reveal">
+            <span class="eyebrow"><i class="bi bi-gem"></i> Plans</span>
+            <h2>Choose the plan that fits you</h2>
+            <p>Try it free for 7 days. When the trial ends, pay with <b>GCash</b> through secure PayMongo checkout. You get an email receipt and there is no auto-renewal.</p>
+            <div class="billing-toggle mt-3" role="group" aria-label="Billing period">
+              <button type="button" class="active" data-period="monthly">30 days</button>
+              <button type="button" data-period="yearly">1 year <span class="save-tag">Save up to 60%</span></button>
+            </div>
+          </div>
+
+          <div class="row g-4 justify-content-center">
+            <div class="col-md-6 col-xl-3 reveal">
+              <div class="plan-card">
+                <h3>Free</h3>
+                <div class="plan-price"><b>₱0</b><span>7-day trial</span></div>
+                <dl class="plan-spec" data-spec="free"></dl>
+                <ul class="plan-list">
+                  <li><i class="bi bi-check2"></i> <b>10</b> generations. When you use them all, they come back <b>24 hours later</b></li>
+                  <li><i class="bi bi-check2"></i> <b>7 days only:</b> Bootstrap &amp; Vanilla output</li>
+                  <li><i class="bi bi-check2"></i> <b>After 7 days:</b> subscribe to a paid plan to keep generating</li>
+                  <li><i class="bi bi-check2"></i> Live preview, code editor, ZIP download</li>
+                  <li><i class="bi bi-check2"></i> AI Debugger: 15 questions / hour (during the trial)</li>
+                  <li><i class="bi bi-check2"></i> Help assistant</li>
+                  <li class="off"><i class="bi bi-x"></i> React output</li>
+                  <li class="off"><i class="bi bi-x"></i> Advanced features and Pro Tools</li>
+                </ul>
+                <a href="#/studio" class="btn btn-ghost w-100">Start 7-day free trial</a>
+              </div>
+            </div>
+            <div class="col-md-6 col-xl-3 reveal" style="--d:0.04s">
+              <div class="plan-card">
+                <h3>Starter <i class="bi bi-gem"></i></h3>
+                <div class="plan-price"><b data-price="starter">₱0</b><span data-per>/ 30 days</span></div>
+                <dl class="plan-spec" data-spec="starter"></dl>
+                <ul class="plan-list">
+                  <li><i class="bi bi-check2"></i> <span data-gens="starter">0</span> generations, back 24 hours after you use them all</li>
+                  <li><i class="bi bi-check2"></i> Bootstrap &amp; Vanilla output</li>
+                  <li><i class="bi bi-check2"></i> Live preview, code editor, ZIP download</li>
+                  <li><i class="bi bi-check2"></i> AI Debugger: 120 questions / hour</li>
+                  <li><i class="bi bi-check2"></i> Help assistant</li>
+                  <li class="off"><i class="bi bi-x"></i> React output</li>
+                  <li class="off"><i class="bi bi-x"></i> Pro Tools (ROI + BIR)</li>
+                </ul>
+                <button class="btn btn-brand w-100 btn-lg btn-buy" data-tier="starter" type="button"><i class="bi bi-wallet2 me-2"></i><span>Pay with GCash</span></button>
+              </div>
+            </div>
+            <div class="col-md-6 col-xl-3 reveal" style="--d:0.08s">
+              <div class="plan-card pro">
+                <span class="plan-ribbon">Most popular</span>
+                <h3>Pro <i class="bi bi-gem"></i></h3>
+                <div class="plan-price"><b data-price="pro">₱0</b><span data-per>/ 30 days</span></div>
+                <dl class="plan-spec" data-spec="pro"></dl>
+                <ul class="plan-list">
+                  <li><i class="bi bi-check2"></i> <span data-gens="pro">0</span> generations, back 24 hours after you use them all</li>
+                  <li><i class="bi bi-check2"></i> <b>React</b>, Bootstrap &amp; Vanilla output</li>
+                  <li><i class="bi bi-check2"></i> Live preview, code editor, ZIP download</li>
+                  <li><i class="bi bi-check2"></i> AI Debugger: 120 questions / hour</li>
+                  <li><i class="bi bi-check2"></i> Help assistant</li>
+                  <li><i class="bi bi-check2"></i> <b>Pro Tools:</b> Business ROI + BIR tax estimator</li>
+                </ul>
+                <button class="btn btn-brand w-100 btn-lg btn-buy" data-tier="pro" type="button"><i class="bi bi-wallet2 me-2"></i><span>Pay with GCash</span></button>
+              </div>
+            </div>
+            <div class="col-md-6 col-xl-3 reveal" style="--d:0.12s">
+              <div class="plan-card">
+                <h3>Business <i class="bi bi-gem"></i></h3>
+                <div class="plan-price"><b data-price="business">₱0</b><span data-per>/ 30 days</span></div>
+                <dl class="plan-spec" data-spec="business"></dl>
+                <ul class="plan-list">
+                  <li><i class="bi bi-check2"></i> <span data-gens="business">0</span> generations, back 24 hours after you use them all</li>
+                  <li><i class="bi bi-check2"></i> Everything in Pro</li>
+                  <li><i class="bi bi-check2"></i> <b>Highest AI quality</b> and the largest output size</li>
+                  <li><i class="bi bi-check2"></i> Best for agencies and freelancers building for clients</li>
+                </ul>
+                <button class="btn btn-brand w-100 btn-lg btn-buy" data-tier="business" type="button"><i class="bi bi-wallet2 me-2"></i><span>Pay with GCash</span></button>
+              </div>
+            </div>
+          </div>
+          <div class="small text-secondary text-center mt-3" id="buyHint">Real payment via PayMongo · GCash · no auto-renewal</div>
+          <div class="alert alert-danger py-2 small mt-3 d-none" id="buyError" role="alert"></div>
+        </div>
+      </section>
+
+      <section class="section alt" id="roi">
+        <div class="container">
+          <div class="section-head reveal">
+            <span class="eyebrow"><i class="bi bi-graph-up-arrow"></i> ROI calculator</span>
+            <h2>How fast does Pro pay for itself?</h2>
+            <p>Enter your own numbers. This is an estimate; your real results depend on your work.</p>
+          </div>
+          <div class="row g-4 align-items-stretch">
+            <div class="col-lg-6 reveal">
+              <div class="panel h-100">
+                <div class="panel-title"><i class="bi bi-sliders"></i> Your numbers</div>
+                <label class="form-label small text-secondary" for="roiHours">Hours to build 1 page by hand: <b id="roiHoursV">6</b> hrs</label>
+                <input type="range" class="form-range" id="roiHours" min="1" max="20" step="1" value="6">
+                <label class="form-label small text-secondary mt-3" for="roiPages">Pages / designs per month: <b id="roiPagesV">8</b></label>
+                <input type="range" class="form-range" id="roiPages" min="1" max="60" step="1" value="8">
+                <label class="form-label small text-secondary mt-3" for="roiRate">Value of your time (₱ / hour): <b id="roiRateV">250</b></label>
+                <input type="range" class="form-range" id="roiRate" min="50" max="1500" step="10" value="250">
+                <label class="form-label small text-secondary mt-3" for="roiSaved">Time saved by AI: <b id="roiSavedV">70</b>%</label>
+                <input type="range" class="form-range" id="roiSaved" min="20" max="90" step="5" value="70">
+              </div>
+            </div>
+            <div class="col-lg-6 reveal" style="--d:.08s">
+              <div class="panel h-100 roi-result">
+                <div class="panel-title"><i class="bi bi-calculator"></i> Estimated result / month</div>
+                <div class="roi-grid">
+                  <div><small>Hours saved</small><b id="roiOut1">—</b></div>
+                  <div><small>Value of time saved</small><b id="roiOut2">—</b></div>
+                  <div><small>Pro cost (1 month)</small><b id="roiOut3">—</b></div>
+                  <div class="hl"><small>ROI</small><b id="roiOut4">—</b></div>
+                </div>
+                <p class="roi-note" id="roiNote"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container" style="max-width:820px">
+          <div class="section-head reveal"><h2>Frequently asked questions</h2></div>
+          <div class="accordion faq" id="faq">
+            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f1">What do I get for free?</button></h3><div id="f1" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">Every new account gets a <b>7-day free trial</b> with <b>10 generations</b> (Bootstrap or Vanilla output). The trial lasts 7 days only. After that, subscribe to a paid plan to keep generating. Projects you already made can still be previewed, edited and downloaded as a ZIP.</div></div></div>
+            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f2">How do I pay with GCash?</button></h3><div id="f2" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">Choose a plan and press <b>Pay with GCash</b>. You are redirected to PayMongo's secure checkout, where you pay with your GCash account. When you return to the app, your plan is activated automatically.</div></div></div>
+            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f3">What do Low, Standard and High AI quality mean?</button></h3><div id="f3" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">It is the level of AI used for your generations. <b>Low</b> (Free trial and Starter) is the fastest and uses a lightweight model with a smaller output size. <b>Standard</b> (Pro) is balanced and good for most full websites. <b>High</b> (Business) uses the most capable model with the deepest reasoning and the largest output size, so it is slower but handles complex designs better.</div></div></div>
+            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f4">Which plan includes React and Pro Tools?</button></h3><div id="f4" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">React output and Pro Tools (Business ROI calculator and BIR tax estimator) are included in <b>Pro</b> and <b>Business</b>. The free trial and Starter include Bootstrap and Vanilla output.</div></div></div>
+            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f5">Does my plan renew automatically? When do my generations come back?</button></h3><div id="f5" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">No. Each purchase is a one-time payment for 30 days or 1 year. If you buy again while your plan is active, the new days are added to your remaining time. On every plan, when you use up all your generations they come back <b>24 hours after the moment you used the last one</b>. For example, used up at 3 PM today, back at 3 PM tomorrow. The Studio and your Account page show exactly when.</div></div></div>
+            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f6">Do I get a receipt? What about BIR?</button></h3><div id="f6" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">PayMongo emails you a payment receipt. This app does not issue BIR invoices. If you need a BIR-registered invoice for your business, contact the seller after paying and include your payment reference. The BIR Tax Estimator in Pro Tools is a calculator for planning your own income tax. It does not file or pay taxes for you.</div></div></div>
+            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f7">My plan was not activated after I paid</button></h3><div id="f7" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">Open <b>Account &amp; Plan</b> and press <b>Check payment</b>. It also finds payments made on another device. A backup webhook activates the plan within a few minutes as well. If it still does not show, contact the seller with your payment reference.</div></div></div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- PRO TOOLS -->
+    <div class="page page-top" data-page="tools" hidden>
+      <section class="section" id="tools">
+        <div class="container" style="max-width:1040px">
+          <div class="section-head reveal">
+            <span class="eyebrow"><i class="bi bi-briefcase"></i> Pro Tools</span>
+            <h2>Business tools for people who sell websites</h2>
+            <p>Plan your profit and your Philippine income tax when you build websites for clients.</p>
+          </div>
+
+          <div class="locked-panel d-none" id="toolsSignin">
+            <div class="lock-icon"><i class="bi bi-lock-fill"></i></div>
+            <h3>Sign in to use Pro Tools</h3>
+            <a class="btn btn-brand btn-lg" href="#/login">Sign in</a>
+          </div>
+          <div class="locked-panel d-none" id="toolsLocked">
+            <div class="lock-icon"><i class="bi bi-gem"></i></div>
+            <h3>Pro Tools are for Pro and Business members</h3>
+            <p>Upgrade to Pro or Business with GCash to unlock the Business ROI calculator and the BIR tax estimator.</p>
+            <a class="btn btn-brand btn-lg" href="#/pricing"><i class="bi bi-wallet2 me-2"></i>See plans</a>
+          </div>
+
+          <div id="toolsApp" class="d-none">
+            <div class="text-center mb-4">
+              <div class="billing-toggle" role="group" aria-label="Tool">
+                <button type="button" class="active" data-tool="roi"><i class="bi bi-graph-up-arrow me-1"></i>Business ROI</button>
+                <button type="button" data-tool="bir"><i class="bi bi-receipt me-1"></i>BIR Tax Estimator</button>
+              </div>
+            </div>
+
+            <!-- ROI -->
+            <div id="toolRoi">
+              <div class="row g-4">
+                <div class="col-lg-5"><div class="panel h-100">
+                  <div class="panel-title"><i class="bi bi-sliders"></i> Your business numbers</div>
+                  <label class="form-label small text-secondary" for="brPrice">Price you charge per website (₱)</label>
+                  <input type="number" class="form-control glass-input" id="brPrice" min="0" step="100" value="5000">
+                  <label class="form-label small text-secondary mt-3" for="brSites">Websites you sell per month</label>
+                  <input type="number" class="form-control glass-input" id="brSites" min="0" step="1" value="4">
+                  <label class="form-label small text-secondary mt-3" for="brHand">Hours per website without AI</label>
+                  <input type="number" class="form-control glass-input" id="brHand" min="0" step="0.5" value="12">
+                  <label class="form-label small text-secondary mt-3" for="brAi">Hours per website with DRAW2CODE AI</label>
+                  <input type="number" class="form-control glass-input" id="brAi" min="0" step="0.5" value="4">
+                  <label class="form-label small text-secondary mt-3" for="brRate">Value of your time (₱ per hour)</label>
+                  <input type="number" class="form-control glass-input" id="brRate" min="0" step="10" value="150">
+                </div></div>
+                <div class="col-lg-7"><div class="panel h-100 roi-result">
+                  <div class="panel-title"><i class="bi bi-calculator"></i> Monthly result</div>
+                  <div class="roi-grid">
+                    <div><small>Hours saved</small><b id="brOut1">—</b></div>
+                    <div><small>Value of hours saved</small><b id="brOut2">—</b></div>
+                    <div><small>Pro cost (1 month)</small><b id="brOut3">—</b></div>
+                    <div><small>Net gain after Pro</small><b id="brOut4">—</b></div>
+                    <div><small>Websites you could deliver in the same hours</small><b id="brOut5">—</b></div>
+                    <div class="hl"><small>Return on Pro</small><b id="brOut6">—</b></div>
+                  </div>
+                  <p class="roi-note" id="brNote"></p>
+                </div></div>
+              </div>
+            </div>
+
+            <!-- BIR -->
+            <div id="toolBir" class="d-none">
+              <div class="row g-4">
+                <div class="col-lg-5"><div class="panel h-100">
+                  <div class="panel-title"><i class="bi bi-receipt"></i> Your yearly numbers</div>
+                  <label class="form-label small text-secondary" for="taxGross">Gross receipts for the year (₱)</label>
+                  <input type="number" class="form-control glass-input" id="taxGross" min="0" step="1000" value="600000">
+                  <label class="form-label small text-secondary mt-3" for="taxExp">Actual business expenses for the year (₱)</label>
+                  <input type="number" class="form-control glass-input" id="taxExp" min="0" step="1000" value="150000">
+                  <label class="form-label small text-secondary mt-3" for="taxType">Taxpayer type</label>
+                  <select class="form-select glass-input" id="taxType">
+                    <option value="pure">Purely self-employed / professional</option>
+                    <option value="mixed">Mixed income (also employed)</option>
+                  </select>
+                  <p class="small text-secondary mt-3 mb-0">Assumes you are not VAT-registered and that this is your only taxable income. Mixed-income earners get no ₱250,000 reduction under the 8% option.</p>
+                </div></div>
+                <div class="col-lg-7"><div class="panel h-100">
+                  <div class="panel-title"><i class="bi bi-bar-chart"></i> Estimated yearly tax</div>
+                  <div class="alert alert-warning py-2 small d-none" id="taxWarn" role="alert"></div>
+                  <div class="tax-options" id="taxOptions"></div>
+                  <p class="roi-note" id="taxNote"></p>
+                </div></div>
+              </div>
+
+              <div class="row g-4 mt-1">
+                <div class="col-md-6"><div class="panel h-100">
+                  <div class="panel-title"><i class="bi bi-calendar-check"></i> Usual filing schedule</div>
+                  <ul class="plain-list">
+                    <li><b>BIR Form 1701Q</b> (quarterly income tax): May 15, Aug 15, Nov 15</li>
+                    <li><b>BIR Form 1701 / 1701A</b> (annual income tax): April 15 of the next year</li>
+                    <li><b>BIR Form 2551Q</b> (3% percentage tax): within 25 days after each quarter. Only for graduated-rate filers, not for the 8% option.</li>
+                  </ul>
+                  <p class="small text-secondary mb-0">The 8% option is chosen at registration or on your first quarterly return and applies for the whole year. Deadlines that fall on weekends or holidays move to the next business day.</p>
+                </div></div>
+                <div class="col-md-6"><div class="panel h-100">
+                  <div class="panel-title"><i class="bi bi-check2-square"></i> Selling websites: basics</div>
+                  <ul class="plain-list">
+                    <li>Register with the BIR and get your Certificate of Registration</li>
+                    <li>Issue BIR-registered invoices to clients</li>
+                    <li>Keep books of accounts and records of your expenses</li>
+                    <li>Watch the ₱3,000,000 gross limit: above it, the 8% option is not available and VAT applies</li>
+                  </ul>
+                  <p class="small text-secondary mb-0">This tool is an estimate for planning, not tax advice and it does not file anything. Rates follow the TRAIN schedule as published for 2026. Confirm the details with the BIR (bir.gov.ph) or a tax professional.</p>
+                </div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- AI DEBUGGER -->
+    <div class="page page-top" data-page="debug" hidden>
+      <section class="section" id="debugger">
+        <div class="container-xl">
+          <div class="section-head reveal">
+            <span class="eyebrow"><i class="bi bi-bug"></i> AI Debugger</span>
+            <h2>Find out why your code has an error</h2>
+            <p>Paste the error and your code. The AI explains the cause, shows how to fix it, and gives you corrected code. During the 7-day free trial: 15 questions per hour. Paid plans: 120 per hour.</p>
+          </div>
+
+          <div class="locked-panel d-none" id="debugLocked">
+            <div class="lock-icon"><i class="bi bi-lock-fill"></i></div>
+            <h3>Sign in to use the AI Debugger</h3>
+            <p>You need to be signed in so the AI credits are protected.</p>
+            <a class="btn btn-brand btn-lg" href="#/login"><i class="bi bi-box-arrow-in-right me-2"></i>Sign in</a>
+          </div>
+
+          <div class="row g-4 d-none" id="debugApp">
+            <div class="col-lg-4">
+              <div class="panel">
+                <div class="panel-title"><i class="bi bi-exclamation-octagon"></i> Error message</div>
+                <textarea class="form-control glass-input" id="dbgError" rows="4" maxlength="4000" placeholder="Paste the error here, e.g. Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')"></textarea>
+                <div class="panel-title mt-4"><i class="bi bi-file-earmark-code"></i> Code <span class="opacity-75 small">(optional)</span></div>
+                <textarea class="form-control glass-input code-area" id="dbgCode" rows="8" maxlength="60000" spellcheck="false" placeholder="Paste the code that has the error"></textarea>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                  <button class="btn btn-sm btn-ghost" id="dbgUseProject" type="button"><i class="bi bi-folder2-open me-1"></i>Use current project</button>
+                  <button class="btn btn-sm btn-ghost" id="dbgClear" type="button"><i class="bi bi-eraser me-1"></i>Clear</button>
+                </div>
+                <button class="btn btn-brand w-100 mt-4" id="dbgExplain" type="button"><i class="bi bi-magic me-2"></i>Explain &amp; fix</button>
+              </div>
+            </div>
+            <div class="col-lg-8">
+              <div class="panel chat-panel">
+                <div class="chat-log" id="chatLog" aria-live="polite">
+                  <div class="chat-empty" id="chatEmpty">
+                    <i class="bi bi-chat-dots"></i>
+                    <h4>Ready to help you debug</h4>
+                    <p>Try one of these:</p>
+                    <div class="quick-prompts">
+                      <button type="button" class="pill-btn" data-q="Why does my mobile menu button not work?">Menu button not working</button>
+                      <button type="button" class="pill-btn" data-q="What does 'Cannot read properties of null' mean?">Cannot read properties of null</button>
+                      <button type="button" class="pill-btn" data-q="Why is the preview of my generated website blank?">Blank preview</button>
+                    </div>
+                  </div>
+                </div>
+                <form class="chat-form" id="chatForm">
+                  <textarea class="form-control glass-input" id="chatInput" rows="1" maxlength="4000" placeholder="Ask a question or follow up…" aria-label="Message"></textarea>
+                  <button class="btn btn-brand" id="chatSend" type="submit" aria-label="Send"><i class="bi bi-send-fill"></i></button>
+                  <button class="btn btn-ghost d-none" id="chatStop" type="button" aria-label="Stop"><i class="bi bi-stop-fill"></i></button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="page page-top" data-page="login" hidden>
+      <section class="section login-section">
+        <div class="container">
+          <div class="login-card reveal">
+            <div class="login-side">
+              <span class="brand-mark lg"><i class="bi bi-brush-fill"></i></span>
+              <h2>Welcome to <span class="grad-text">DRAW2CODE AI</span></h2>
+              <p>Sign in to save your projects to the cloud and use them on any device.</p>
+              <ul class="hero-points">
+                <li><i class="bi bi-check2-circle"></i> Cloud sync across devices</li>
+                <li><i class="bi bi-check2-circle"></i> AI Debugger that explains your errors</li>
+                <li><i class="bi bi-check2-circle"></i> Upgrade with GCash: Starter, Pro or Business</li>
+              </ul>
+            </div>
+            <div class="login-form">
+              <h3 id="authTitle" class="mb-3">Sign in</h3>
+              <ul class="nav nav-pills auth-tabs mb-3" role="tablist">
+                <li class="nav-item flex-fill"><button class="nav-link active w-100" id="tabLogin" type="button" data-mode="login">Sign in</button></li>
+                <li class="nav-item flex-fill"><button class="nav-link w-100" id="tabRegister" type="button" data-mode="register">Create account</button></li>
+              </ul>
+              <button class="btn btn-google w-100 mb-3" id="btnGoogle" type="button">
+                <svg width="18" height="18" viewBox="0 0 48 48" class="me-2" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+                Continue with Google
+              </button>
+              <div class="or-sep"><span>or use email</span></div>
+              <form id="authForm" novalidate>
+                <div class="mb-3 d-none" id="nameRow">
+                  <label class="form-label small" for="authName">Name</label>
+                  <input type="text" class="form-control glass-input" id="authName" autocomplete="name" maxlength="60">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small" for="authEmail">Email</label>
+                  <input type="email" class="form-control glass-input" id="authEmail" autocomplete="email" required>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small" for="authPass">Password</label>
+                  <div class="pw-wrap">
+                    <input type="password" class="form-control glass-input" id="authPass" autocomplete="current-password" minlength="6" required>
+                    <button type="button" class="pw-eye" data-target="authPass" aria-label="Show password" aria-pressed="false"><i class="bi bi-eye"></i></button>
+                  </div>
+                </div>
+                <div class="mb-3 d-none" id="strengthRow">
+                  <div class="pw-meter" id="pwMeter" data-level="0" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                  <div class="pw-label" id="pwLabel" aria-live="polite">Use 8+ characters with letters, numbers and symbols.</div>
+                  <ul class="pw-checks" id="pwChecks">
+                    <li data-check="len"><i class="bi bi-circle"></i> 8+ characters</li>
+                    <li data-check="case"><i class="bi bi-circle"></i> Upper &amp; lower case</li>
+                    <li data-check="num"><i class="bi bi-circle"></i> A number</li>
+                    <li data-check="sym"><i class="bi bi-circle"></i> A symbol (! @ # $ …)</li>
+                  </ul>
+                </div>
+                <div class="mb-3 d-none" id="confirmRow">
+                  <label class="form-label small" for="authPass2">Confirm password</label>
+                  <div class="pw-wrap">
+                    <input type="password" class="form-control glass-input" id="authPass2" autocomplete="new-password">
+                    <button type="button" class="pw-eye" data-target="authPass2" aria-label="Show password" aria-pressed="false"><i class="bi bi-eye"></i></button>
+                  </div>
+                  <div class="pw-match" id="pwMatch" aria-live="polite"></div>
+                </div>
+                <div class="text-end mb-3"><button type="button" class="btn btn-link btn-sm p-0" id="btnForgot">Forgot password?</button></div>
+                <div class="alert alert-danger py-2 small d-none" id="authError" role="alert"></div>
+                <div class="alert alert-success py-2 small d-none" id="authInfo" role="status"></div>
+                <button class="btn btn-brand w-100" id="btnAuthSubmit" type="submit">Sign in</button>
+                <p class="small text-secondary text-center mt-3 mb-0">By continuing you agree to the <a href="#/license">DRAW2CODE AI License</a>.</p>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ACCOUNT -->
+    <div class="page page-top" data-page="account" hidden>
+      <section class="section" id="account">
+        <div class="container" style="max-width:900px">
+          <div class="section-head reveal"><span class="eyebrow">Account</span><h2>Account &amp; Plan</h2><p>See your plan, usage and payment status.</p></div>
+          <div class="locked-panel d-none" id="accountLocked">
+            <div class="lock-icon"><i class="bi bi-lock-fill"></i></div>
+            <h3>Sign in to see your account</h3>
+            <a class="btn btn-brand btn-lg" href="#/login">Sign in</a>
+          </div>
+          <div id="accountApp" class="d-none">
+            <div class="alert glass-alert d-none" id="payStatus" role="status"></div>
+            <div class="row g-4">
+              <div class="col-md-6"><div class="panel h-100">
+                <div class="panel-title"><i class="bi bi-person-circle"></i> Profile</div>
+                <div class="acct-row"><small>Name</small><b id="acctName">—</b></div>
+                <div class="acct-row"><small>Email</small><b id="acctEmail">—</b></div>
+                <div class="acct-row"><small>App version</small><b data-version>v2.4.7</b></div>
+                <div class="acct-row"><small>Last updated</small><b data-version-date>—</b></div>
+                <div class="acct-row"><small>Software license</small><b><a href="#/license">Proprietary v1.0 · Roniel Nyke Gonzales</a></b></div>
+              </div></div>
+              <div class="col-md-6"><div class="panel h-100">
+                <div class="panel-title"><i class="bi bi-gem"></i> Plan</div>
+                <div class="acct-row"><small>Current plan</small><b id="acctPlan">Free</b></div>
+                <div class="acct-row"><small id="acctExpLabel">Pro until</small><b id="acctExpiry">—</b></div>
+                <div class="acct-row"><small>Time left</small><b id="acctCountdown" class="countdown" aria-live="off">—</b></div>
+                <div class="small text-secondary mt-3 mb-1">Generations used: <b id="acctUsed">0</b> / <b id="acctLimit">10</b></div>
+                <div class="progress" style="height:8px"><div class="progress-bar" id="acctBar" style="width:0%"></div></div>
+                <div class="acct-row mt-2"><small>Generations come back</small><b id="acctReset">—</b></div>
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                  <a class="btn btn-brand" href="#/pricing"><i class="bi bi-wallet2 me-1"></i>Upgrade / Renew</a>
+                  <button class="btn btn-ghost" id="btnCheckPay" type="button"><i class="bi bi-arrow-repeat me-1"></i>Check payment</button>
+                </div>
+              </div></div>
+            </div>
+            <div class="panel mt-4 d-none" id="setupPanel">
+              <div class="panel-title"><i class="bi bi-clipboard2-check"></i> Owner setup check</div>
+              <ul class="setup-list" id="setupList"></ul>
+              <div class="small text-secondary mt-2">Only you (the owner) can see this. Fix any red item in Vercel / Firebase, redeploy, then reload this page.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+
+    <!-- LICENSE -->
+    <div class="page page-top" data-page="license" hidden>
+      <section class="section">
+        <div class="container" style="max-width:860px">
+          <div class="section-head reveal"><span class="eyebrow"><i class="bi bi-patch-check-fill"></i> Official license</span><h2>DRAW2CODE AI License</h2><p>Proprietary software license, version 1.0 · effective November 14, 2026</p></div>
+          <div class="lic-card reveal">
+            <div class="lic-owner">
+              <span class="dev-avatar"><i class="bi bi-shield-check"></i></span>
+              <div><small>Licensor &amp; copyright owner</small><strong>Roniel Nyke Gonzales</strong><span class="dev-loc"><i class="bi bi-geo-alt-fill"></i> Sibaguan, Lambunao, Iloilo, Philippines</span></div>
+              <div class="lic-id"><small>License</small><b>Proprietary · v1.0</b><small>Copyright &copy; 2026 · All rights reserved</small></div>
+            </div>
+            <div class="lic-body">
+<p class="lic-meta">Copyright (c) 2026 Roniel Nyke Gonzales Sibaguan, Lambunao, Iloilo, Philippines All rights reserved.</p>
+<div class="lic-sec"><h3><span>1</span>Ownership</h3><p>DRAW2CODE AI (the &quot;Software&quot;), including its source code, design, text, logo and documentation, is the original work of Roniel Nyke Gonzales (the &quot;Owner&quot;) and is protected by the copyright laws of the Republic of the Philippines (Republic Act No. 8293, the Intellectual Property Code of the Philippines) and by international treaties. No title or ownership is transferred to anyone by use, access, purchase of a plan, or receipt of a copy.</p></div>
+<div class="lic-sec"><h3><span>2</span>License Grant To Users</h3><p>Subject to these terms, and for as long as the user&#x27;s free trial or paid plan is active, the Owner grants the user a limited, non-exclusive, non-transferable, revocable license to use the hosted Software through its website. Website code generated for the user from the user&#x27;s own uploaded images belongs to the user, who is responsible for having the right to use the images they upload.</p></div>
+<div class="lic-sec"><h3><span>3</span>Restrictions</h3><p>Without the Owner&#x27;s prior written permission, you may NOT:</p><ul><li>copy, modify, merge, publish, distribute, sublicense, sell, rent or lease the Software or any part of its source code;</li><li>reverse engineer, decompile or attempt to extract the source code, except where the law allows it despite this restriction;</li><li>host your own copy of the Software, or offer it or a clone of it to others as a service;</li><li>remove or change any copyright, owner or license notice;</li><li>bypass, tamper with or share access to the trial limit, plan limits, payment checks or other access controls;</li><li>use the Software for unlawful purposes or to infringe the rights of others.</li></ul></div>
+<div class="lic-sec"><h3><span>4</span>Paid Plans</h3><p>Paid plans are one-time payments for the period shown at checkout (30 days or 1 year), with no automatic renewal. Access ends when the period ends. The 7-day free trial is available once per account. The Owner may change prices and plans for future purchases.</p></div>
+<div class="lic-sec"><h3><span>5</span>Third-Party Components</h3><p>The Software uses third-party components (for example Bootstrap, Bootstrap Icons, Firebase, and PayMongo services). They remain under their own licenses and terms, which are not changed by this license.</p></div>
+<div class="lic-sec"><h3><span>6</span>Termination</h3><p>The Owner may suspend or end access if these terms are broken. On termination the user must stop using the Software. Sections 1, 3, 7, 8 and 9 continue to apply.</p></div>
+<div class="lic-sec"><h3><span>7</span>No Warranty</h3><p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT AND UNINTERRUPTED OR ERROR-FREE OPERATION. AI-generated output may contain mistakes; the user must review it before use. Tax and ROI figures in Pro Tools are estimates for planning only and are not tax, legal or financial advice.</p></div>
+<div class="lic-sec"><h3><span>8</span>Limitation Of Liability</h3><p>TO THE MAXIMUM EXTENT ALLOWED BY LAW, THE OWNER IS NOT LIABLE FOR INDIRECT, INCIDENTAL OR CONSEQUENTIAL DAMAGES, OR FOR LOSS OF PROFITS OR DATA, ARISING FROM USE OF THE SOFTWARE. THE OWNER&#x27;S TOTAL LIABILITY IS LIMITED TO THE AMOUNT THE USER PAID IN THE 12 MONTHS BEFORE THE CLAIM.</p></div>
+<div class="lic-sec"><h3><span>9</span>Governing Law</h3><p>These terms are governed by the laws of the Republic of the Philippines. Disputes shall be brought before the proper courts of Iloilo, Philippines.  Contact: Roniel Nyke Gonzales — ronielnyke@gmail.com Version of this license: 1.0 (November 14, 2026)</p></div>
+            </div>
+            <div class="lic-actions"><a class="btn btn-brand" href="LICENSE.txt" download="DRAW2CODE-AI-LICENSE.txt"><i class="bi bi-download me-1"></i>Download license (.txt)</a> <a class="btn btn-ghost" href="#/home">Back to home</a></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- CHANGELOG -->
+    <div class="page page-top" data-page="changelog" hidden>
+      <section class="section">
+        <div class="container" style="max-width:820px">
+          <div class="section-head reveal"><span class="eyebrow"><i class="bi bi-rocket-takeoff"></i> What's new</span><h2>Version history</h2><p>Current version: <b data-version>v2.4.7</b> <span class="text-secondary" id="relDate"></span><br><small class="text-secondary">The version number goes up automatically every time the app is updated.</small></p></div>
+          <h3 class="tl-head d-none" id="liveReleasesHead">Recent updates</h3>
+          <div class="timeline" id="liveReleases"></div>
+          <h3 class="tl-head">Highlights</h3>
+          <div class="timeline">
+            <article class="tl-item reveal"><span class="tl-v">v2.4</span><time>Nov 14, 2026</time>
+              <ul><li>The free trial is now exactly 7 days. After that, a paid plan is needed to keep generating</li><li>Live countdown of your plan time left (30 days or 1 year), starting from the full length</li><li>Official license page, linked in the footer, sign-in and account</li><li>Developer name and location in the footer, and a more premium look</li><li>One version number everywhere. It goes up automatically with every update</li><li>The Help assistant now uses the smartest AI model</li><li>Full check of the whole system: sign-in, generation, plans, GCash payments, chat and tools all tested. One clear message when the trial ends, and a corrected BIR estimate above ₱3,000,000</li><li>The version now shows the date and time it was updated, everywhere it appears. The Help chat can answer any question, like ChatGPT or Gemini</li><li>The version is shown on phone, tablet and desktop, and in the Help chat. The Help assistant understands and answers in any language (English, Filipino, Ilonggo, Cebuano and more)</li><li>Better layout on phones, tablets and desktop: easier menu, bigger tap targets, no sideways scrolling</li></ul>
+            </article>
+            <article class="tl-item reveal"><span class="tl-v">v2.3</span><time>Nov 14, 2026</time>
+              <ul><li>7-day free trial now has 10 generations. When they are all used, they come back 24 hours later (same for every plan)</li><li>The free trial is 7 days only. After that, a paid plan is needed to keep generating</li><li>Studio shows how many generations you have left and when they return</li></ul>
+            </article>
+            <article class="tl-item reveal"><span class="tl-v">v2.2</span><time>Nov 14, 2026</time>
+              <ul><li>New plans: Free trial (1 generation, 7 days), Starter, Pro and Business, each for 30 days or 1 year</li><li>Real AI quality levels: Low, Standard and High, shown on every plan</li><li>Works with Gemini, ChatGPT or Claude</li><li>Help assistant: ask about plans, payments and your usage</li><li>Password strength meter, show/hide password and confirm-password check</li><li>Safer GCash checkout: plan activates only after a verified payment</li></ul>
+            </article>
+            <article class="tl-item reveal"><span class="tl-v">v2.1</span><time>Nov 14, 2026</time>
+              <ul><li>Pro Tools: Business ROI calculator and BIR tax estimator (8% vs graduated + percentage tax)</li><li>Whole interface is now in English</li><li>Prices and limits now come from your server settings</li></ul></article>
+            <article class="tl-item reveal"><span class="tl-v">v2.0</span><time>Nov 14, 2026</time>
+              <ul><li>Multi-page layout: Home, How it works, Features, Studio, Projects, Pricing, AI Debugger, Account</li><li>Dedicated Login page with Continue with Google</li><li>AI Debugger that explains why code errors</li><li>Pro plan with GCash checkout (PayMongo) and ROI calculator</li><li>Automatic error detection in the live preview</li><li>Automatic "new version available" notice</li></ul></article>
+            <article class="tl-item reveal"><span class="tl-v">v1.0</span><time>Initial release</time>
+              <ul><li>Image to website generator (Bootstrap, Vanilla, React)</li><li>Live preview, code editor, ZIP download</li><li>Firebase login and cloud-synced projects</li></ul></article>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="row g-4 align-items-center">
+        <div class="col-md-5">
+          <a class="brand" href="#/home"><span class="brand-mark"><i class="bi bi-brush-fill"></i></span><span>DRAW2CODE <b>AI</b></span></a>
+          <p class="text-secondary mt-3 mb-0 small">Image to website code generator. Upload a design, get working code you can preview, edit and download.</p>
+        </div>
+        <div class="col-md-3">
+          <div class="footer-links">
+            <a href="#/how">How it works</a><a href="#/features">Features</a><a href="#/studio">Studio</a><a href="#/projects">My Projects</a><a href="#/debug">AI Debugger</a><a href="#/tools">Pro Tools</a><a href="#/pricing">Pricing</a><a href="#/changelog">What's new</a><a href="#/license">License</a>
+          </div>
+        </div>
+        <div class="col-md-4 text-md-end">
+          <div class="dev-card"><span class="dev-avatar"><i class="bi bi-code-slash"></i></span><div><small>Developed by</small><strong>Roniel Nyke Gonzales</strong><span class="dev-loc"><i class="bi bi-geo-alt-fill"></i> Sibaguan, Lambunao, Iloilo, Philippines</span></div></div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© <span id="year">2026</span> DRAW2CODE AI. All rights reserved. · <a href="#/license" class="ver-link">Licensed software</a></span>
+        <span><a href="#/changelog" class="ver-link" data-version>v2.4.7</a> <span class="ver-date">· updated <span data-version-date="short">—</span></span> · Designed &amp; developed by <b>Roniel Nyke Gonzales</b> · <i class="bi bi-geo-alt-fill"></i> Sibaguan, Lambunao, Iloilo, Philippines</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- IMPROVE MODAL -->
+  <div class="modal fade" id="improveModal" tabindex="-1" aria-labelledby="improveTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-modal">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title" id="improveTitle"><i class="bi bi-arrow-repeat me-2"></i>Regenerate / improve</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label small" for="improveText">What should the AI change?</label>
+          <textarea class="form-control glass-input" id="improveText" rows="4" maxlength="2000" placeholder="e.g. Make the hero bigger, add a contact form, match the colors more closely. Leave empty for a general polish."></textarea>
+          <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" id="improveCopy">
+            <label class="form-check-label small" for="improveCopy">Keep the original and save the result as a new project</label>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-brand" id="btnImproveGo"><i class="bi bi-magic me-1"></i>Regenerate</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM MODAL -->
+  <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content glass-modal">
+        <div class="modal-body text-center p-4">
+          <div class="lock-icon danger mb-3"><i class="bi bi-trash3-fill"></i></div>
+          <h5 id="confirmTitle">Delete project?</h5>
+          <p class="text-secondary small" id="confirmText">This cannot be undone.</p>
+          <div class="d-flex gap-2 justify-content-center">
+            <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirmOk">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN PREVIEW -->
+  <div class="fs-overlay d-none" id="fsOverlay" role="dialog" aria-label="Fullscreen preview">
+    <button class="btn btn-brand fs-close" id="fsClose" type="button"><i class="bi bi-x-lg me-1"></i>Close</button>
+    <iframe id="fsFrame" title="Fullscreen preview" sandbox="allow-scripts allow-forms allow-modals allow-popups"></iframe>
+  </div>
+
+  <!-- HELP ASSISTANT -->
+  <button class="ast-fab" id="astFab" type="button" aria-label="Open help assistant" aria-expanded="false"><i class="bi bi-chat-dots-fill"></i><span>Help</span></button>
+  <section class="ast-panel d-none" id="astPanel" role="dialog" aria-label="DRAW2CODE help assistant">
+    <header class="ast-head">
+      <div class="ast-av"><i class="bi bi-stars"></i></div>
+      <div class="ast-title"><b>DRAW2CODE Help</b><small>AI assistant · <span data-version>v2.4.7</span> · <span data-version-date="short">—</span></small></div>
+      <button class="ast-x" id="astClose" type="button" aria-label="Close help assistant"><i class="bi bi-x-lg"></i></button>
+    </header>
+    <div class="ast-log" id="astLog" aria-live="polite"></div>
+    <div class="ast-chips" id="astChips">
+      <button type="button" data-q="How much are the plans and what is included?">Plans &amp; pricing</button>
+      <button type="button" data-q="How many generations do I have left?">My usage</button>
+      <button type="button" data-q="How do I create a website from a screenshot?">How to use</button>
+      <button type="button" data-q="How do I pay with GCash and how is my plan activated?">Payments</button>
+    </div>
+    <form class="ast-form" id="astForm">
+      <textarea id="astInput" rows="1" maxlength="4000" dir="auto" placeholder="Ask me anything, in any language..." aria-label="Your question"></textarea>
+      <button type="submit" id="astSend" aria-label="Send"><i class="bi bi-send-fill"></i></button>
+    </form>
+  </section>
+
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="/assets/app.js"></script>
+  <script type="module" src="/assets/extras.js"></script>
+</body>
+</html>
