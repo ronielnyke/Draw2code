@@ -36,6 +36,11 @@ module.exports = function handler(req, res) {
     if (v) firebase[key] = v;
     else missing.push(envName);
   }
+  // Show the site's own address (draw2code-ai.vercel.app) on the Google sign-in screen. The sign-in pages are served
+  // from this domain through the /__/auth rewrite in vercel.json. Other hosts (previews, localhost) keep the default.
+  const own = new URL(/^https?:\/\//.test(process.env.PUBLIC_URL || '') ? process.env.PUBLIC_URL.trim() : 'https://draw2code-ai.vercel.app').host;
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
+  if (host && host === own.toLowerCase()) firebase.authDomain = host;
   const sender = fbEnv('FIREBASE_MESSAGING_SENDER_ID');
   const bucket = fbEnv('FIREBASE_STORAGE_BUCKET');
   if (sender) firebase.messagingSenderId = sender;

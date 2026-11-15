@@ -6,7 +6,7 @@ const FB = 'https://www.gstatic.com/firebasejs/11.0.2/';
 // Used as a fallback so sign-in still works even if /api/config cannot be reached.
 const FB_DEFAULT = {
   apiKey: 'AIzaSyDO0WT9GJBbW01AIVCgACglvaN0g3U4WsA',
-  authDomain: 'draw2code-ai.vercel.app',
+  authDomain: 'raw2code.firebaseapp.com',
   projectId: 'raw2code',
   storageBucket: 'raw2code.firebasestorage.app',
   messagingSenderId: '246249703811',
@@ -191,6 +191,9 @@ async function bootFirebase() {
     return;
   }
 
+  // Finishes a Google sign-in that used the redirect flow (popup blocked): the user comes back to the site signed in.
+  state.fb.getRedirectResult(state.auth).then((r) => { if (r && r.user) afterLogin(); }).catch((e) => { console.error(e); setAuthMsg('err', authError(e)); });
+
   state.fb.onAuthStateChanged(state.auth, onAuthChanged, (err) => {
     console.error(err);
     toast('Authentication error. Please reload the page.', 'err');
@@ -367,11 +370,12 @@ function initAuthUi() {
     if (!state.configured) return;
     setAuthMsg(null);
     const provider = new state.fb.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
     try {
       await state.fb.signInWithPopup(state.auth, provider);
       afterLogin();
     } catch (e) {
-      if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) {
+      if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment' || e.code === 'auth/web-storage-unsupported')) {
         try { await state.fb.signInWithRedirect(state.auth, provider); return; } catch (e2) { e = e2; }
       }
       setAuthMsg('err', authError(e));

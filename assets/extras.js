@@ -730,12 +730,14 @@ function init() {
   window.addEventListener('hashchange', route);
   window.addEventListener('d2c:auth', async (e) => {
     const user = e.detail.user;
-    renderGuards();
-    await refreshPlan();
-    renderGuards();
-    renderPricing();
-    renderAccount();
     if (user && currentRoute() === 'login') location.hash = '#/studio';
+    try {
+      renderGuards();
+      await refreshPlan();
+      renderGuards();
+      renderPricing();
+      renderAccount();
+    } catch (err) { console.error(err); }
     if (user && /paid=1/.test(location.hash)) { location.hash = '#/account?paid=1'; verifyPayment(false); }
   });
   route();
