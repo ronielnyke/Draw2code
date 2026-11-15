@@ -1,10 +1,10 @@
 {
   "name": "draw2code-ai",
-  "version": "2.4.7",
+  "version": "2.4.11",
   "private": true,
   "description": "DRAW2CODE AI - image to website code generator",
   "engines": {
-    "node": "22.x"
+    "node": "26.x"
   },
   "dependencies": {},
   "license": "SEE LICENSE IN LICENSE",

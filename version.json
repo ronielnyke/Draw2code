@@ -1,9 +1,14 @@
 {
   "base": "2.4",
-  "build": 10,
+  "build": 11,
   "released": "2026-11-15",
-  "releasedAt": "2026-11-15T20:47:43+08:00",
+  "releasedAt": "2026-11-15T20:54:44+08:00",
   "releases": [
+    {
+      "version": "2.4.11",
+      "at": "2026-11-15T20:54:44+08:00",
+      "note": "Aligned the Node.js engine with the Vercel project runtime."
+    },
     {
       "version": "2.4.10",
       "at": "2026-11-15T20:47:43+08:00",
