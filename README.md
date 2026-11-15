@@ -118,7 +118,7 @@ A floating **Help** button (bottom-right, every page) opens an AI chat for clien
 
 ## 8. One AI layer (Gemini / ChatGPT / Claude)
 
-The generator (`/api/generate`), the AI Debugger (`/api/debug`) and the Help assistant (`/api/assistant`) all go through `api/_ai.js`, so they use whichever provider you configured. Everything is a real API call; nothing is canned. After deploying, sign in as the owner, open **Account** and press **Test AI now (real request)** to confirm the key and model work. Notes: Gemini does not accept GIF images (JPG, PNG, WEBP only); Gemini and GPT-5 models "think" first, so they get a larger output budget than Claude for the same `MAX_OUTPUT_TOKENS`.
+The generator (`/api/generate`), the AI Debugger (`/api/debug`) and the Help assistant (`/api/assistant`) all go through `api/_ai.js`. If the selected provider reports exhausted quota, a rejected key/model, or a temporary outage, the server tries the next configured provider; without `AI_PROVIDER`, preference is Gemini, OpenAI, then Claude. Provider keys must be set as `GEMINI_API_KEY` (or `GOOGLE_API_KEY`), `OPENAI_API_KEY`, and/or `ANTHROPIC_API_KEY` in Vercel Production, followed by a redeploy. The owner Account setup panel shows which provider keys the deployed server detects. After deploying, press **Test AI now (real request)** to confirm a live request works. Notes: Gemini does not accept GIF images (JPG, PNG, WEBP only); Gemini and GPT-5 models "think" first, so they get a larger output budget than Claude for the same `MAX_OUTPUT_TOKENS`.
 
 ## 9. Payments (GCash via PayMongo)
 

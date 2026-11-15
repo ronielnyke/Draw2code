@@ -103,9 +103,18 @@ const PLANS = () => {
 
 /** Owner-only self-check: which server settings are in place (no secrets are returned). */
 async function health(user) {
+  const ai = require('./_ai');
+  const aiInfo = ai.info();
   const out = {
     firebaseProject: fbEnv('FIREBASE_PROJECT_ID'),
-    ai: (({ provider, label, models, keyName, configured }) => ({ provider, label, models, keyName, configured }))(require('./_ai').info()),
+    ai: {
+      provider: aiInfo.provider,
+      label: aiInfo.label,
+      models: aiInfo.models,
+      keyName: aiInfo.keyName,
+      configured: aiInfo.configured,
+      configuredProviders: ai.configuredProviders().map((p) => p.label),
+    },
     paymongo: (process.env.PAYMONGO_SECRET_KEY || '').trim().startsWith('sk_live_') ? 'live' : (process.env.PAYMONGO_SECRET_KEY || '').trim() ? 'test' : '',
     webhook: !!(process.env.PAYMONGO_WEBHOOK_SECRET || '').trim(),
     database: { ok: false, error: '' },

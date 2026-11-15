@@ -36,9 +36,11 @@ const FALLBACK_MODELS = {
   openai: ['gpt-4.1', 'gpt-4o', 'gpt-5'],
 };
 const PROVIDER_ORDER = ['gemini', 'openai', 'anthropic'];
+const providerCooldowns = new Map();
 const KEY_NAME = { anthropic: 'ANTHROPIC_API_KEY', gemini: 'GEMINI_API_KEY', openai: 'OPENAI_API_KEY' };
 const LABEL = { anthropic: 'Claude', gemini: 'Gemini', openai: 'ChatGPT (OpenAI)' };
 const ALIAS = { claude: 'anthropic', google: 'gemini', chatgpt: 'openai', gpt: 'openai' };
+const QUOTA_ERROR = /insufficient_quota|billing|quota|credit balance|credit.{0,30}(?:low|exhausted|limit)|(?:out of|no) credits?|resource[_ ]exhausted|usage limit|payment required/i;
 
 // Reads a Vercel variable; ignores stray spaces, quotes and a pasted "NAME=" prefix.
 const env = (n) => String(process.env[n] || '').trim().replace(new RegExp('^' + n + '\\s*=\\s*'), '').replace(/^['"]+|['"]+$/g, '').trim();
@@ -57,6 +59,10 @@ function modelFor(provider, quality) {
   if (quality === 'basic') quality = 'low'; // basic uses the cheapest model
   const P = provider.toUpperCase();
   return env(P + '_MODEL_' + quality.toUpperCase()) || env(P + '_MODEL') || DEFAULT_MODEL[provider][quality];
+}
+
+function configuredProviders() {
+  return PROVIDER_ORDER.filter((provider) => keyFor(provider)).map((provider) => ({ provider, label: LABEL[provider] }));
 }
 
 function info(quality, forced) {
@@ -135,7 +141,7 @@ function buildRequest(cfg, { system, messages, maxTokens }) {
 /** Turns a provider HTTP error into { status (for our client), message }. */
 function friendlyError(cfg, status, text) {
   const t = String(text || '');
-  if (/insufficient_quota|billing|exceeded your current quota|credit balance/i.test(t) && status !== 401) return { status: 502, message: cfg.label + ' account has no credit or quota left. Add billing / credit to the ' + cfg.label + ' account.' };
+  if (QUOTA_ERROR.test(t) && status !== 401) return { status: 502, message: cfg.label + ' account has no credit or quota left. Add billing / credit to the ' + cfg.label + ' account.' };
   if (status === 401 || status === 403 || /API key not valid|API_KEY_INVALID|invalid x-api-key|Incorrect API key/i.test(t)) return { status: 502, message: 'AI credentials were rejected. Check ' + cfg.keyName + '.' };
   if (status === 404) return { status: 502, message: 'AI model "' + cfg.model + '" was not found. Check ' + cfg.modelEnv + '.' };
   if (status === 429 || status === 529 || status === 503) return { status: 503, message: 'The AI service is busy. Please try again in a moment.' };
@@ -178,13 +184,23 @@ async function open(args) {
   // Uses the chosen provider first. If its key is rejected, has no credit, or its models are unavailable, the next
   // provider that has a key in Vercel is tried automatically, so any working AI key keeps the system running.
   const first = info(args.quality).provider;
-  const order = (keyFor(first) ? [first] : []).concat(PROVIDER_ORDER.filter((p) => p !== first && keyFor(p)));
+  const configured = PROVIDER_ORDER.filter((p) => keyFor(p));
+  const ready = configured.filter((p) => (providerCooldowns.get(p) || 0) <= Date.now());
+  const candidates = ready.length ? ready : configured;
+  const order = (candidates.indexOf(first) !== -1 ? [first] : []).concat(candidates.filter((p) => p !== first));
   if (!order.length) order.push(first);
   let lastFail = null;
   for (const p of order) {
     const r = await openOne(args, p);
-    if (r.ok) return r;
+    if (r.ok) {
+      providerCooldowns.delete(p);
+      return r;
+    }
     lastFail = r;
+    if (r.retry) {
+      const needsBilling = /quota|credit|billing|credential|rejected|model .*not found/i.test(r.message || '');
+      providerCooldowns.set(p, Date.now() + (needsBilling ? 5 * 60 * 1000 : 30 * 1000));
+    }
     if (!r.retry) break;
   }
   return lastFail;
@@ -236,7 +252,7 @@ async function openOne({ system, messages, maxTokens, signal, quality, providerT
     const modelProblem = up.status === 404 || (up.status === 400 && /model/i.test(text) && /not (found|supported)|does not exist|invalid/i.test(text));
     if (modelProblem && i < tryModels.length - 1) continue;
     const f = friendlyError(used, up.status, text);
-    const retry = up.status === 401 || up.status === 402 || up.status === 403 || up.status === 404 || up.status === 429 || up.status === 529 || up.status >= 500 || /insufficient_quota|billing|quota|credit balance|API key not valid/i.test(text) || modelProblem;
+    const retry = up.status === 401 || up.status === 402 || up.status === 403 || up.status === 404 || up.status === 429 || up.status === 529 || up.status >= 500 || QUOTA_ERROR.test(text) || /API key not valid/i.test(text) || modelProblem;
     return { ok: false, status: f.status, message: f.message, retry };
   }
   return {
@@ -282,4 +298,4 @@ async function ask(system, userText, maxTokens, quality) {
   return { ok: true, text: out.trim() };
 }
 
-module.exports = { info, open, ask, QUALITY, outputTokens, LABEL, KEY_NAME, DEFAULT_MODEL };
+module.exports = { info, open, ask, configuredProviders, QUALITY, outputTokens, LABEL, KEY_NAME, DEFAULT_MODEL };
