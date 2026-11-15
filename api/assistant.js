@@ -99,24 +99,31 @@ module.exports = async function handler(req, res) {
   while (msgs.length && msgs[0].role !== 'user') msgs.shift();
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') return send(res, 400, { error: 'Please type your question.' });
 
-  const ctx = await userContext(user);
-  let ver = versionApi.floorVersion();
-  try { ver = (await versionApi.current()).version || ver; } catch (e) { /* use the file version */ }
   const ac = new AbortController();
-  res.on('close', () => ac.abort());
+  let timedOut = false;
+  const timeout = setTimeout(() => { timedOut = true; ac.abort(); }, 45000);
+  res.on('close', () => { if (!res.writableEnded) ac.abort(); });
 
-  const up = await ai.open({ system: system(ctx, 'v' + ver), messages: msgs, maxTokens: 2500, quality: chatQuality(), signal: ac.signal });
-  if (!up.ok) {
-    console.error('DRAW2CODE assistant provider error:', up.status, up.message);
-    return send(res, up.status === 500 ? 500 : up.status, { error: up.message || 'The assistant is unavailable right now.' });
+  try {
+    const ctx = await userContext(user);
+    const ver = versionApi.floorVersion();
+    const up = await ai.open({ system: system(ctx, 'v' + ver), messages: msgs, maxTokens: 1500, quality: chatQuality(), signal: ac.signal });
+    if (!up.ok) {
+      if (timedOut) return send(res, 504, { error: 'The assistant took too long to respond. Please try again.' });
+      console.error('DRAW2CODE assistant provider error:', up.status, up.message);
+      return send(res, up.status === 500 ? 500 : up.status, { error: up.message || 'The assistant is unavailable right now.' });
+    }
+
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store, no-transform');
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+    const st = await up.read((t) => res.write(t));
+    if (timedOut) res.write('\n[[D2C_ERROR]] The assistant took too long to respond. Please try again.');
+    else if (st.error) res.write('\n[[D2C_ERROR]] ' + st.error);
+    res.end();
+  } finally {
+    clearTimeout(timeout);
   }
-
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store, no-transform');
-  if (typeof res.flushHeaders === 'function') res.flushHeaders();
-
-  const st = await up.read((t) => res.write(t));
-  if (st.error) res.write('\n[[D2C_ERROR]] ' + st.error);
-  res.end();
 };
