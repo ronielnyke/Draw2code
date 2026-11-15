@@ -7,7 +7,7 @@ const { createDb, rememberToken } = require('./_firestore');
 // protected by Firebase Auth + Firestore rules). Vercel env variables, if set, override them.
 const FIREBASE_DEFAULTS = {
   FIREBASE_API_KEY: 'AIzaSyDO0WT9GJBbW01AIVCgACglvaN0g3U4WsA',
-  FIREBASE_AUTH_DOMAIN: 'raw2code.firebaseapp.com',
+  FIREBASE_AUTH_DOMAIN: 'draw2code-ai.vercel.app',
   FIREBASE_PROJECT_ID: 'raw2code',
   FIREBASE_APP_ID: '1:246249703811:web:4141fdbe17139407138eb6',
   FIREBASE_MESSAGING_SENDER_ID: '246249703811',

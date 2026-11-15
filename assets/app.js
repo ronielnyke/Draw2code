@@ -6,7 +6,7 @@ const FB = 'https://www.gstatic.com/firebasejs/11.0.2/';
 // Used as a fallback so sign-in still works even if /api/config cannot be reached.
 const FB_DEFAULT = {
   apiKey: 'AIzaSyDO0WT9GJBbW01AIVCgACglvaN0g3U4WsA',
-  authDomain: 'raw2code.firebaseapp.com',
+  authDomain: 'draw2code-ai.vercel.app',
   projectId: 'raw2code',
   storageBucket: 'raw2code.firebasestorage.app',
   messagingSenderId: '246249703811',
