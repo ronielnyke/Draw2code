@@ -1,7 +1,7 @@
 'use strict';
 // One AI layer for the whole system: Claude (Anthropic), Gemini (Google) or ChatGPT (OpenAI).
 // Pick with env AI_PROVIDER = anthropic | gemini | openai. If it is not set, the first provider
-// that has an API key is used (order: anthropic, gemini, openai).
+// that has an API key is used (order: gemini, openai, anthropic).
 //
 //   anthropic : ANTHROPIC_API_KEY
 //   gemini    : GEMINI_API_KEY
@@ -35,6 +35,7 @@ const FALLBACK_MODELS = {
   gemini: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
   openai: ['gpt-4.1', 'gpt-4o', 'gpt-5'],
 };
+const PROVIDER_ORDER = ['gemini', 'openai', 'anthropic'];
 const KEY_NAME = { anthropic: 'ANTHROPIC_API_KEY', gemini: 'GEMINI_API_KEY', openai: 'OPENAI_API_KEY' };
 const LABEL = { anthropic: 'Claude', gemini: 'Gemini', openai: 'ChatGPT (OpenAI)' };
 const ALIAS = { claude: 'anthropic', google: 'gemini', chatgpt: 'openai', gpt: 'openai' };
@@ -46,8 +47,9 @@ const keyFor = (p) => env(KEY_NAME[p]) || (p === 'gemini' ? env('GOOGLE_API_KEY'
 function pickProvider() {
   const want = env('AI_PROVIDER').toLowerCase();
   const p = ALIAS[want] || want;
+  if (KEY_NAME[p] && keyFor(p)) return p;
+  for (const c of PROVIDER_ORDER) if (keyFor(c)) return c;
   if (KEY_NAME[p]) return p;
-  for (const c of ['anthropic', 'gemini', 'openai']) if (keyFor(c)) return c;
   return 'anthropic';
 }
 
@@ -176,39 +178,65 @@ async function open(args) {
   // Uses the chosen provider first. If its key is rejected, has no credit, or its models are unavailable, the next
   // provider that has a key in Vercel is tried automatically, so any working AI key keeps the system running.
   const first = info(args.quality).provider;
-  const order = [first].concat(['anthropic', 'gemini', 'openai'].filter((p) => p !== first && keyFor(p)));
-  let firstFail = null;
+  const order = (keyFor(first) ? [first] : []).concat(PROVIDER_ORDER.filter((p) => p !== first && keyFor(p)));
+  if (!order.length) order.push(first);
+  let lastFail = null;
   for (const p of order) {
     const r = await openOne(args, p);
     if (r.ok) return r;
-    firstFail = firstFail || r;
+    lastFail = r;
     if (!r.retry) break;
   }
-  return firstFail;
+  return lastFail;
 }
 
-async function openOne({ system, messages, maxTokens, signal, quality }, provider) {
+async function openOne({ system, messages, maxTokens, signal, quality, providerTimeoutMs }, provider) {
   const cfg = info(quality, provider);
   if (!cfg.configured) return { ok: false, status: 500, message: 'AI service is not configured. Set ' + cfg.keyName + ' in Vercel (or choose another provider with AI_PROVIDER).' };
   // If a model name is not available on this account (404 / "model not found"), try other current models of the same
   // provider before giving up. A model the owner set in Vercel (<PROVIDER>_MODEL...) is tried first.
   const tryModels = [cfg.model].concat((FALLBACK_MODELS[cfg.provider] || []).filter((m) => m !== cfg.model));
   let up, used = cfg;
+  let releaseStream = () => {};
   for (let i = 0; i < tryModels.length; i++) {
     used = { ...cfg, model: tryModels[i] };
     const reqd = buildRequest(used, { system, messages, maxTokens });
-    try {
-      up = await fetch(reqd.url, { method: 'POST', signal, headers: reqd.headers, body: JSON.stringify(reqd.body) });
-    } catch (e) {
-      return { ok: false, status: 502, message: 'Could not reach the AI service. Please try again.' };
+    const requestController = new AbortController();
+    const abortFromCaller = () => requestController.abort();
+    if (signal) {
+      if (signal.aborted) requestController.abort();
+      else signal.addEventListener('abort', abortFromCaller, { once: true });
     }
-    if (up.ok) break;
+    let timedOut = false;
+    const timer = providerTimeoutMs > 0 ? setTimeout(() => { timedOut = true; requestController.abort(); }, providerTimeoutMs) : null;
+    const releaseRequest = () => {
+      if (timer) clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', abortFromCaller);
+    };
+    try {
+      up = await fetch(reqd.url, { method: 'POST', signal: requestController.signal, headers: reqd.headers, body: JSON.stringify(reqd.body) });
+    } catch (e) {
+      releaseRequest();
+      const callerAborted = !!(signal && signal.aborted);
+      return {
+        ok: false,
+        status: timedOut ? 504 : 502,
+        message: timedOut ? cfg.label + ' took too long to start responding.' : 'Could not reach the AI service. Please try again.',
+        retry: !callerAborted,
+      };
+    }
+    if (timer) clearTimeout(timer);
+    if (up.ok) {
+      releaseStream = releaseRequest;
+      break;
+    }
     const text = await up.text().catch(() => '');
+    releaseRequest();
     console.error('AI upstream error', cfg.provider, used.model, up.status, text.slice(0, 400));
     const modelProblem = up.status === 404 || (up.status === 400 && /model/i.test(text) && /not (found|supported)|does not exist|invalid/i.test(text));
     if (modelProblem && i < tryModels.length - 1) continue;
     const f = friendlyError(used, up.status, text);
-    const retry = up.status === 401 || up.status === 403 || up.status === 404 || up.status === 402 || /insufficient_quota|billing|quota|credit balance|API key not valid/i.test(text) || modelProblem;
+    const retry = up.status === 401 || up.status === 402 || up.status === 403 || up.status === 404 || up.status === 429 || up.status === 529 || up.status >= 500 || /insufficient_quota|billing|quota|credit balance|API key not valid/i.test(text) || modelProblem;
     return { ok: false, status: f.status, message: f.message, retry };
   }
   return {
@@ -235,6 +263,8 @@ async function openOne({ system, messages, maxTokens, signal, quality }, provide
         if (buf.trim()) block(buf);
       } catch (e) {
         if (!(signal && signal.aborted)) state.error = state.error || 'The connection to the AI service was interrupted.';
+      } finally {
+        releaseStream();
       }
       return state;
     },

@@ -34,7 +34,7 @@ Storage is not needed: the source image is compressed and stored in Firestore.
 | `FIREBASE_APP_ID` | Firebase web `appId` |
 | `FIREBASE_MESSAGING_SENDER_ID` | optional |
 | AI key (one is enough) | `GEMINI_API_KEY` (Google Gemini) **or** `OPENAI_API_KEY` (ChatGPT) **or** `ANTHROPIC_API_KEY` (Claude). Server-side only. |
-| `AI_PROVIDER` | `gemini`, `openai` or `anthropic`. Optional: if empty, the first provider that has a key is used. |
+| `AI_PROVIDER` | `gemini`, `openai` or `anthropic`. Optional: if empty, the first configured key is used in this order: Gemini, OpenAI, Claude. |
 
 Optional model overrides: `<PROVIDER>_MODEL_LOW|STANDARD|HIGH` or `<PROVIDER>_MODEL` (see the AI quality note above). Model names change often; if you see "model was not found", set the `*_MODEL` variable to a current model from your provider's docs. Optional too: `OPENAI_REASONING_EFFORT=off` (skip the reasoning setting if your model rejects it), `GEMINI_THINKING_LEVEL`, `RATE_LIMIT_PER_HOUR` (default `20` generations per user), `MAX_OUTPUT_TOKENS` (default `16000`).
 
@@ -114,7 +114,7 @@ Open tabs on the old version show an "Update now" banner.
 
 ## 7. Help assistant (clients)
 
-A floating **Help** button (bottom-right, every page) opens an AI chat for clients (`/api/assistant`). It uses the same AI provider and key as the generator (Gemini, ChatGPT or Claude). It is a general-purpose AI helper (any question, any language, like ChatGPT or Gemini) that also knows this system: features, plans and prices (read live from `TIERS()` in `api/_admin.js`), GCash payments, the current version, and the signed-in user's own plan and usage. It uses Standard quality by default (`ASSISTANT_QUALITY=standard`; set `low` to reduce cost or `high` for stronger reasoning). It cannot change plans or refund. Limits: 60 messages per hour per user, signed-in users only, and it does not use up generations. Optional env `SUPPORT_CONTACT` (e.g. your email or Facebook page) is shown to users for refunds and payment problems; if unset, it tells them to contact the site owner.
+A floating **Help** button (bottom-right, every page) opens an AI chat for clients (`/api/assistant`). It uses the same AI provider and key as the generator (Gemini, ChatGPT or Claude). It is a general-purpose AI helper (any question, any language, like ChatGPT or Gemini) that also knows this system: features, plans and prices (read live from `TIERS()` in `api/_admin.js`), GCash payments, the current version, and the signed-in user's own plan and usage. It uses Low quality by default for faster replies (`ASSISTANT_QUALITY=standard` or `high` selects a stronger, slower model). If a provider cannot start within 10 seconds, the request tries the next configured provider. It cannot change plans or refund. Limits: 60 messages per hour per user, signed-in users only, and it does not use up generations. Optional env `SUPPORT_CONTACT` (e.g. your email or Facebook page) is shown to users for refunds and payment problems; if unset, it tells them to contact the site owner.
 
 ## 8. One AI layer (Gemini / ChatGPT / Claude)
 

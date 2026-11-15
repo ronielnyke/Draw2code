@@ -17,9 +17,8 @@ function limited(uid, owner) {
   return false;
 }
 
-// Use Standard by default to avoid unexpectedly expensive high-reasoning requests.
-// Set ASSISTANT_QUALITY=low or high in Vercel when intentionally needed.
-const chatQuality = () => { const q = (process.env.ASSISTANT_QUALITY || 'standard').trim().toLowerCase(); return q === 'low' || q === 'high' ? q : 'standard'; };
+// Use the fastest model by default; Standard and High remain available by configuration.
+const chatQuality = () => { const q = (process.env.ASSISTANT_QUALITY || 'low').trim().toLowerCase(); return q === 'standard' || q === 'high' ? q : 'low'; };
 
 const fmt = (ms) => new Date(ms).toISOString().slice(0, 10);
 
@@ -107,7 +106,7 @@ module.exports = async function handler(req, res) {
   try {
     const ctx = await userContext(user);
     const ver = versionApi.floorVersion();
-    const up = await ai.open({ system: system(ctx, 'v' + ver), messages: msgs, maxTokens: 1500, quality: chatQuality(), signal: ac.signal });
+    const up = await ai.open({ system: system(ctx, 'v' + ver), messages: msgs, maxTokens: 2500, quality: chatQuality(), providerTimeoutMs: 10000, signal: ac.signal });
     if (!up.ok) {
       if (timedOut) return send(res, 504, { error: 'The assistant took too long to respond. Please try again.' });
       console.error('DRAW2CODE assistant provider error:', up.status, up.message);
