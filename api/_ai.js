@@ -28,7 +28,7 @@ const DEFAULT_MODEL = {
   gemini: { low: 'gemini-3.5-flash-lite', standard: 'gemini-3.8-flash', high: 'gemini-3.8-flash' },
 };
 const FALLBACK_MODELS = {
-  gemini: ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'],
+  gemini: ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash'],
 };
 const PROVIDER_ORDER = ['gemini'];
 const providerCooldowns = new Map();
@@ -180,15 +180,20 @@ async function open(args) {
   return lastFail;
 }
 
-async function openOne({ system, messages, maxTokens, signal, quality, providerTimeoutMs }) {
+async function openOne({ system, messages, maxTokens, signal, quality, providerTimeoutMs, model }) {
   const cfg = info(quality);
   if (!cfg.configured) return { ok: false, status: 500, message: 'AI service is not configured. Set GEMINI_API_KEY (or GOOGLE_API_KEY) in Vercel.' };
+  if (typeof model === 'string' && model.trim()) {
+    cfg.model = model.trim().replace(/^models\//, '');
+    cfg.modelEnv = 'ASSISTANT_GEMINI_MODEL';
+  }
   // If a model name is not available on this account (404 / "model not found"), try other current models of the same
   // provider before giving up. A model the owner set in Vercel (<PROVIDER>_MODEL...) is tried first.
   const tryModels = [cfg.model].concat((FALLBACK_MODELS[cfg.provider] || []).filter((m) => m !== cfg.model));
   let up, used = cfg;
   let releaseStream = () => {};
   let streamController;
+  let timeoutRetried = false;
   for (let i = 0; i < tryModels.length; i++) {
     used = { ...cfg, model: tryModels[i] };
     const reqd = buildRequest(used, { system, messages, maxTokens });
@@ -209,6 +214,10 @@ async function openOne({ system, messages, maxTokens, signal, quality, providerT
     } catch (e) {
       releaseRequest();
       const callerAborted = !!(signal && signal.aborted);
+      if (timedOut && !callerAborted && !timeoutRetried && i < tryModels.length - 1) {
+        timeoutRetried = true;
+        continue;
+      }
       return {
         ok: false,
         status: timedOut ? 504 : 502,

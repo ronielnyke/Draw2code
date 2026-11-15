@@ -93,8 +93,8 @@ module.exports = async function handler(req, res) {
   if (!body) return send(res, 400, { error: 'Invalid request.' });
   const msgs = (Array.isArray(body.messages) ? body.messages : [])
     .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
-    .slice(-20)
-    .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    .slice(-10)
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 2500) }));
   while (msgs.length && msgs[0].role !== 'user') msgs.shift();
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') return send(res, 400, { error: 'Please type your question.' });
 
@@ -106,7 +106,9 @@ module.exports = async function handler(req, res) {
   try {
     const ctx = await userContext(user);
     const ver = versionApi.floorVersion();
-    const up = await ai.open({ system: system(ctx, 'v' + ver), messages: msgs, maxTokens: 2500, quality: chatQuality(), providerTimeoutMs: 20000, signal: ac.signal });
+    const quality = chatQuality();
+    const model = quality === 'low' ? (process.env.ASSISTANT_GEMINI_MODEL || ai.DEFAULT_MODEL.gemini.low) : undefined;
+    const up = await ai.open({ system: system(ctx, 'v' + ver), messages: msgs, maxTokens: 1200, quality, model, providerTimeoutMs: 12000, signal: ac.signal });
     if (!up.ok) {
       if (timedOut) return send(res, 504, { error: 'The assistant took too long to respond. Please try again.' });
       console.error('DRAW2CODE assistant provider error:', up.status, up.message);
