@@ -1,9 +1,14 @@
 {
   "base": "2.4",
-  "build": 7,
+  "build": 8,
   "released": "2026-11-15",
-  "releasedAt": "2026-11-15T17:30:00+08:00",
+  "releasedAt": "2026-11-15T20:19:00+08:00",
   "releases": [
+    {
+      "version": "2.4.8",
+      "at": "2026-11-15T20:19:00+08:00",
+      "note": "Automatic version increments on production deployments; fixed Firestore version-counter rules."
+    },
     {
       "version": "2.4.7",
       "at": "2026-11-15T17:30:00+08:00",

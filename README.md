@@ -130,6 +130,7 @@ You never edit the version number by hand. `GET /api/version` builds it as `MAJO
 
 - `MAJOR.MINOR` is the `base` in `version.json` (for example `"2.4"`). The patch never restarts when the base changes.
 - `PATCH` goes up by **1 on every production deployment, forever**, whether or not you changed anything. It is counted in Firestore (`meta/version`), so every server instance agrees. Preview deployments never change it. It is stored in Firestore through the public `meta/version` rule in `firestore.rules`; if that rule is not published the version stays at `MAJOR.MINOR.BUILD` from `version.json`.
+- `firebase.json` points Firebase CLI to this repository's rules. Publish them once (and again after rule changes) with `firebase deploy --only firestore:rules --project raw2code`; Vercel's `FIREBASE_PROJECT_ID` must point to the same project.
 - Each release is saved with a note. The default note is "Improvements and fixes". Set `RELEASE_NOTE` in Vercel before deploying to write your own, or `RELEASE_NOTES_FROM_GIT=1` to use the git commit message (it becomes public, so leave it off if your commits are private).
 - Open pages check `/api/version` every 5 minutes and when the tab is focused. When a new deployment is live they show **"Version vX.Y.Z is ready: note"** with an **Update now** button, and the version chip turns amber. The **Changelog** page lists the recent automatic updates, with the older highlights below.
 

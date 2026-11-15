@@ -38,11 +38,15 @@ service cloud.firestore {
     // Public release counter (/api/version). Anyone can read it; it can only be created or moved forward.
     match /meta/{doc} {
       allow read: if true;
-      allow create, update: if doc == 'version'
+      allow create: if doc == 'version'
+        && request.resource.data.keys().hasOnly(['base', 'patch', 'version', 'buildId', 'at', 'note', 'history'])
+        && request.resource.data.patch is int && request.resource.data.patch < 1000000
+        && request.resource.data.history.size() <= 200;
+      allow update: if doc == 'version'
         && request.resource.data.keys().hasOnly(['base', 'patch', 'version', 'buildId', 'at', 'note', 'history'])
         && request.resource.data.patch is int && request.resource.data.patch < 1000000
         && request.resource.data.history.size() <= 200
-        && (resource == null || request.resource.data.patch >= resource.data.patch);
+        && request.resource.data.patch >= resource.data.patch;
     }
 
     match /{document=**} {
