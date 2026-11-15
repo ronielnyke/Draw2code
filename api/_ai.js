@@ -27,7 +27,7 @@ const outputTokens = (q) => Math.round(BASE_OUTPUT_TOKENS() * (QUALITY[q] || QUA
 
 const DEFAULT_MODEL = {
   anthropic: { low: 'claude-haiku-5-5', standard: 'claude-sonnet-5-5', high: 'claude-opus-5-5' },
-  gemini: { low: 'gemini-3.1-flash-lite', standard: 'gemini-3.8-flash', high: 'gemini-3.1-pro-preview' },
+  gemini: { low: 'gemini-3.8-flash', standard: 'gemini-3.8-flash', high: 'gemini-3.8-flash' },
   openai: { low: 'gpt-5.5', standard: 'gpt-5.5', high: 'gpt-5.5' }, // OpenAI: same model, different reasoning effort
 };
 const FALLBACK_MODELS = {

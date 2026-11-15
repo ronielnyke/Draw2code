@@ -17,10 +17,9 @@ function limited(uid, owner) {
   return false;
 }
 
-// The Help assistant always uses the smartest model by default (quality "high": Claude Opus, Gemini Pro).
-// To save money set ASSISTANT_QUALITY=standard (balanced) or low (cheapest) in Vercel.
-// For an even smarter Claude model set ANTHROPIC_MODEL_HIGH in Vercel (for example claude-fable-5-2).
-const chatQuality = () => { const q = (process.env.ASSISTANT_QUALITY || 'high').trim().toLowerCase(); return q === 'low' || q === 'standard' ? q : 'high'; };
+// Use Standard by default to avoid unexpectedly expensive high-reasoning requests.
+// Set ASSISTANT_QUALITY=low or high in Vercel when intentionally needed.
+const chatQuality = () => { const q = (process.env.ASSISTANT_QUALITY || 'standard').trim().toLowerCase(); return q === 'low' || q === 'high' ? q : 'standard'; };
 
 const fmt = (ms) => new Date(ms).toISOString().slice(0, 10);
 
@@ -107,7 +106,10 @@ module.exports = async function handler(req, res) {
   res.on('close', () => ac.abort());
 
   const up = await ai.open({ system: system(ctx, 'v' + ver), messages: msgs, maxTokens: 2500, quality: chatQuality(), signal: ac.signal });
-  if (!up.ok) return send(res, up.status === 500 ? 500 : up.status, { error: up.status === 502 ? 'The assistant is unavailable right now.' : up.message });
+  if (!up.ok) {
+    console.error('DRAW2CODE assistant provider error:', up.status, up.message);
+    return send(res, up.status === 500 ? 500 : up.status, { error: up.message || 'The assistant is unavailable right now.' });
+  }
 
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
