@@ -189,19 +189,58 @@ async function open(args) {
   const candidates = ready.length ? ready : configured;
   const order = (candidates.indexOf(first) !== -1 ? [first] : []).concat(candidates.filter((p) => p !== first));
   if (!order.length) order.push(first);
+  const cool = (provider, message) => {
+    const needsBilling = /quota|credit|billing|credential|rejected|model .*not found/i.test(message || '');
+    providerCooldowns.set(provider, Date.now() + (needsBilling ? 5 * 60 * 1000 : 30 * 1000));
+  };
   let lastFail = null;
-  for (const p of order) {
-    const r = await openOne(args, p);
-    if (r.ok) {
-      providerCooldowns.delete(p);
-      return r;
+  for (let i = 0; i < order.length; i++) {
+    const provider = order[i];
+    const r = await openOne(args, provider);
+    if (!r.ok) {
+      lastFail = r;
+      if (!(args.signal && args.signal.aborted)) cool(provider, r.message);
+      if (args.signal && args.signal.aborted) return r;
+      continue;
     }
-    lastFail = r;
-    if (r.retry) {
-      const needsBilling = /quota|credit|billing|credential|rejected|model .*not found/i.test(r.message || '');
-      providerCooldowns.set(p, Date.now() + (needsBilling ? 5 * 60 * 1000 : 30 * 1000));
-    }
-    if (!r.retry) break;
+
+    providerCooldowns.delete(provider);
+    return {
+      ok: true,
+      async read(onText) {
+        let emitted = false;
+        const state = await r.read((text) => { emitted = true; onText(text); });
+        if (emitted || (args.signal && args.signal.aborted)) return state;
+
+        if (state.error) lastFail = { ok: false, status: 502, message: state.error };
+        else lastFail = { ok: false, status: 502, message: 'The AI provider returned no text.' };
+        cool(provider, lastFail.message);
+
+        for (let j = i + 1; j < order.length; j++) {
+          const nextProvider = order[j];
+          const next = await openOne(args, nextProvider);
+          if (!next.ok) {
+            lastFail = next;
+            if (!(args.signal && args.signal.aborted)) cool(nextProvider, next.message);
+            if (args.signal && args.signal.aborted) break;
+            continue;
+          }
+
+          providerCooldowns.delete(nextProvider);
+          let nextEmitted = false;
+          const nextState = await next.read((text) => { nextEmitted = true; onText(text); });
+          if (nextEmitted || (args.signal && args.signal.aborted)) return nextState;
+          lastFail = {
+            ok: false,
+            status: 502,
+            message: nextState.error || 'The AI provider returned no text.',
+          };
+          cool(nextProvider, lastFail.message);
+        }
+
+        return { stop: '', error: lastFail.message };
+      },
+    };
   }
   return lastFail;
 }
@@ -214,6 +253,7 @@ async function openOne({ system, messages, maxTokens, signal, quality, providerT
   const tryModels = [cfg.model].concat((FALLBACK_MODELS[cfg.provider] || []).filter((m) => m !== cfg.model));
   let up, used = cfg;
   let releaseStream = () => {};
+  let streamController;
   for (let i = 0; i < tryModels.length; i++) {
     used = { ...cfg, model: tryModels[i] };
     const reqd = buildRequest(used, { system, messages, maxTokens });
@@ -244,15 +284,16 @@ async function openOne({ system, messages, maxTokens, signal, quality, providerT
     if (timer) clearTimeout(timer);
     if (up.ok) {
       releaseStream = releaseRequest;
+      streamController = requestController;
       break;
     }
     const text = await up.text().catch(() => '');
     releaseRequest();
-    console.error('AI upstream error', cfg.provider, used.model, up.status, text.slice(0, 400));
     const modelProblem = up.status === 404 || (up.status === 400 && /model/i.test(text) && /not (found|supported)|does not exist|invalid/i.test(text));
     if (modelProblem && i < tryModels.length - 1) continue;
     const f = friendlyError(used, up.status, text);
     const retry = up.status === 401 || up.status === 402 || up.status === 403 || up.status === 404 || up.status === 429 || up.status === 529 || up.status >= 500 || QUOTA_ERROR.test(text) || /API key not valid/i.test(text) || modelProblem;
+    (retry ? console.warn : console.error)('AI upstream error', cfg.provider, used.model, up.status, text.slice(0, 400));
     return { ok: false, status: f.status, message: f.message, retry };
   }
   return {
@@ -261,11 +302,26 @@ async function openOne({ system, messages, maxTokens, signal, quality, providerT
       const state = { stop: '', error: '' };
       const dec = new TextDecoder();
       let buf = '';
+      let receivedText = false;
+      let streamTimedOut = false;
+      const firstTextTimer = providerTimeoutMs > 0 ? setTimeout(() => {
+        if (!receivedText) {
+          streamTimedOut = true;
+          streamController.abort();
+        }
+      }, providerTimeoutMs) : null;
+      const emitText = (text) => {
+        if (text) {
+          receivedText = true;
+          if (firstTextTimer) clearTimeout(firstTextTimer);
+        }
+        onText(text);
+      };
       const block = (b) => {
         let data = '';
         for (const l of b.split('\n')) if (l.startsWith('data:')) data += l.slice(5).trim();
         if (!data || data === '[DONE]') return;
-        try { handleEvent(cfg, JSON.parse(data), onText, state); } catch (e) { /* ignore a broken event */ }
+        try { handleEvent(cfg, JSON.parse(data), emitText, state); } catch (e) { /* ignore a broken event */ }
       };
       try {
         const reader = up.body.getReader();
@@ -278,8 +334,9 @@ async function openOne({ system, messages, maxTokens, signal, quality, providerT
         }
         if (buf.trim()) block(buf);
       } catch (e) {
-        if (!(signal && signal.aborted)) state.error = state.error || 'The connection to the AI service was interrupted.';
+        if (!(signal && signal.aborted)) state.error = state.error || (streamTimedOut ? cfg.label + ' did not start responding in time.' : 'The connection to the AI service was interrupted.');
       } finally {
+        if (firstTextTimer) clearTimeout(firstTextTimer);
         releaseStream();
       }
       return state;

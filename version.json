@@ -1,9 +1,14 @@
 {
   "base": "2.4",
-  "build": 8,
+  "build": 9,
   "released": "2026-11-15",
-  "releasedAt": "2026-11-15T20:19:00+08:00",
+  "releasedAt": "2026-11-15T20:33:43+08:00",
   "releases": [
+    {
+      "version": "2.4.9",
+      "at": "2026-11-15T20:33:43+08:00",
+      "note": "Faster AI provider failover when a key runs out of quota or a stream does not start."
+    },
     {
       "version": "2.4.8",
       "at": "2026-11-15T20:19:00+08:00",
