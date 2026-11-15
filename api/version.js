@@ -33,31 +33,47 @@ function merged(history) {
 }
 
 let cache = null; // per server instance
+let permissionWarningLogged = false;
+
+function floorVersion(id) {
+  return { version: BASE + '.' + FLOOR, build: id.slice(0, 8), at: FILE_AT, note: '', history: merged([]), auto: false };
+}
 
 async function current() {
   if (cache) return cache;
   const id = buildId();
   const db = getDb();
-  if (!db) return (cache = { version: BASE + '.' + FLOOR, build: id.slice(0, 8), at: FILE_AT, note: '', history: merged([]), auto: false });
+  if (!db) return (cache = floorVersion(id));
   const ref = db.doc('meta/version');
   let d;
-  if (isProd()) {
-    d = await db.runTransaction(async (t) => {
-      const s = await t.get(ref);
-      const old = s.exists ? s.data() : null;
-      if (old && old.buildId === id && old.base === BASE && (old.patch || 0) >= FLOOR) return old; // this deployment is already counted
-      const patch = Math.max(old ? (old.patch || 0) + (old.buildId === id ? 0 : 1) : 0, FLOOR); // never goes down, never restarts
-      const version = BASE + '.' + patch;
-      const at = Date.now();
-      const n = note();
-      const history = [{ version, at, note: n }].concat(old && Array.isArray(old.history) ? old.history : []).slice(0, 200);
-      const next = { base: BASE, patch, version, buildId: id, at, note: n, history };
-      t.set(ref, next);
-      return next;
-    });
-  } else {
-    const s = await ref.get();
-    d = s.exists ? s.data() : { version: BASE + '.' + FLOOR, at: FILE_AT, note: '', history: [] };
+  try {
+    if (isProd()) {
+      d = await db.runTransaction(async (t) => {
+        const s = await t.get(ref);
+        const old = s.exists ? s.data() : null;
+        if (old && old.buildId === id && old.base === BASE && (old.patch || 0) >= FLOOR) return old; // this deployment is already counted
+        const patch = Math.max(old ? (old.patch || 0) + (old.buildId === id ? 0 : 1) : 0, FLOOR); // never goes down, never restarts
+        const version = BASE + '.' + patch;
+        const at = Date.now();
+        const n = note();
+        const history = [{ version, at, note: n }].concat(old && Array.isArray(old.history) ? old.history : []).slice(0, 200);
+        const next = { base: BASE, patch, version, buildId: id, at, note: n, history };
+        t.set(ref, next);
+        return next;
+      });
+    } else {
+      const s = await ref.get();
+      d = s.exists ? s.data() : { version: BASE + '.' + FLOOR, at: FILE_AT, note: '', history: [] };
+    }
+  } catch (e) {
+    if (e && (e.code === 'PERMISSION_DENIED' || /Missing or insufficient permissions/i.test(String(e.message || '')))) {
+      if (!permissionWarningLogged) {
+        console.warn('Automatic version counter is unavailable. Publish firestore.rules to enable Firestore version updates.');
+        permissionWarningLogged = true;
+      }
+      return (cache = floorVersion(id));
+    }
+    throw e;
   }
   return (cache = { version: d.version, build: String(d.buildId || id).slice(0, 8), at: d.at || 0, note: d.note || '', history: merged(d.history), auto: true });
 }
@@ -71,7 +87,7 @@ async function handler(req, res) {
   } catch (e) {
     console.error('version failed:', e && e.message);
     res.setHeader('Cache-Control', 'no-store');
-    return send(res, 200, { version: BASE + '.' + FLOOR, build: buildId().slice(0, 8), at: FILE_AT, note: '', history: merged([]), auto: false });
+    return send(res, 200, floorVersion(buildId()));
   }
 }
 
