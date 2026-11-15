@@ -1,4 +1,8 @@
 'use strict';
+if (!process.env.VERCEL && typeof process.loadEnvFile === 'function') {
+  const localEnvFile = require('path').join(process.cwd(), '.env');
+  if (require('fs').existsSync(localEnvFile)) process.loadEnvFile(localEnvFile);
+}
 // Gemini is the only AI provider used by the system.
 //   gemini : GEMINI_API_KEY (or GOOGLE_API_KEY)
 // Models per quality level can be set with <PROVIDER>_MODEL_LOW / _STANDARD / _HIGH, or one
@@ -21,10 +25,10 @@ const BASE_OUTPUT_TOKENS = () => Number(process.env.MAX_OUTPUT_TOKENS || 16000);
 const outputTokens = (q) => Math.round(BASE_OUTPUT_TOKENS() * (QUALITY[q] || QUALITY.standard).outputX);
 
 const DEFAULT_MODEL = {
-  gemini: { low: 'gemini-3.8-flash', standard: 'gemini-3.8-flash', high: 'gemini-3.8-flash' },
+  gemini: { low: 'gemini-3.5-flash-lite', standard: 'gemini-3.8-flash', high: 'gemini-3.8-flash' },
 };
 const FALLBACK_MODELS = {
-  gemini: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
+  gemini: ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'],
 };
 const PROVIDER_ORDER = ['gemini'];
 const providerCooldowns = new Map();
