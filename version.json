@@ -1,9 +1,14 @@
 {
   "base": "2.4",
-  "build": 11,
+  "build": 12,
   "released": "2026-11-15",
-  "releasedAt": "2026-11-15T20:54:44+08:00",
+  "releasedAt": "2026-11-15T21:03:54+08:00",
   "releases": [
+    {
+      "version": "2.4.12",
+      "at": "2026-11-15T21:03:54+08:00",
+      "note": "Use Gemini and ChatGPT only; retain but ignore Claude credentials."
+    },
     {
       "version": "2.4.11",
       "at": "2026-11-15T20:54:44+08:00",

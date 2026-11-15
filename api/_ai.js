@@ -1,9 +1,8 @@
 'use strict';
-// One AI layer for the whole system: Claude (Anthropic), Gemini (Google) or ChatGPT (OpenAI).
-// Pick with env AI_PROVIDER = anthropic | gemini | openai. If it is not set, the first provider
-// that has an API key is used (order: gemini, openai, anthropic).
+// One AI layer for the whole system: Gemini (Google) or ChatGPT (OpenAI).
+// Claude credentials may remain configured, but Claude is not selected or called.
+// If AI_PROVIDER is unset or set to anthropic, providers are tried in order: gemini, openai.
 //
-//   anthropic : ANTHROPIC_API_KEY
 //   gemini    : GEMINI_API_KEY
 //   openai    : OPENAI_API_KEY
 // Models per quality level can be set with <PROVIDER>_MODEL_LOW / _STANDARD / _HIGH, or one
@@ -35,7 +34,7 @@ const FALLBACK_MODELS = {
   gemini: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
   openai: ['gpt-4.1', 'gpt-4o', 'gpt-5'],
 };
-const PROVIDER_ORDER = ['gemini', 'openai', 'anthropic'];
+const PROVIDER_ORDER = ['gemini', 'openai'];
 const providerCooldowns = new Map();
 const KEY_NAME = { anthropic: 'ANTHROPIC_API_KEY', gemini: 'GEMINI_API_KEY', openai: 'OPENAI_API_KEY' };
 const LABEL = { anthropic: 'Claude', gemini: 'Gemini', openai: 'ChatGPT (OpenAI)' };
@@ -51,8 +50,7 @@ function pickProvider() {
   const p = ALIAS[want] || want;
   if ((p === 'gemini' || p === 'openai') && keyFor(p)) return p;
   for (const c of PROVIDER_ORDER) if (keyFor(c)) return c;
-  if (KEY_NAME[p]) return p;
-  return 'anthropic';
+  return p === 'openai' ? 'openai' : 'gemini';
 }
 
 function modelFor(provider, quality) {
@@ -247,7 +245,7 @@ async function open(args) {
 
 async function openOne({ system, messages, maxTokens, signal, quality, providerTimeoutMs }, provider) {
   const cfg = info(quality, provider);
-  if (!cfg.configured) return { ok: false, status: 500, message: 'AI service is not configured. Set ' + cfg.keyName + ' in Vercel (or choose another provider with AI_PROVIDER).' };
+  if (!cfg.configured) return { ok: false, status: 500, message: 'AI service is not configured. Set GEMINI_API_KEY (or GOOGLE_API_KEY) or OPENAI_API_KEY in Vercel.' };
   // If a model name is not available on this account (404 / "model not found"), try other current models of the same
   // provider before giving up. A model the owner set in Vercel (<PROVIDER>_MODEL...) is tried first.
   const tryModels = [cfg.model].concat((FALLBACK_MODELS[cfg.provider] || []).filter((m) => m !== cfg.model));
