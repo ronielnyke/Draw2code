@@ -18,9 +18,6 @@ function limited(uid, owner) {
   return false;
 }
 
-// Use the fastest model by default; Standard and High remain available by configuration.
-const chatQuality = () => { const q = (process.env.ASSISTANT_QUALITY || 'low').trim().toLowerCase(); return q === 'standard' || q === 'high' ? q : 'low'; };
-
 const fmt = (ms) => new Date(ms).toISOString().slice(0, 10);
 
 async function userContext(user) {
@@ -31,9 +28,10 @@ async function userContext(user) {
     const left = Math.max(0, st.limit - st.used);
     const back = st.resetAt ? ' They used all of them; they come back on ' + new Date(st.resetAt).toISOString().replace('T', ' ').slice(0, 16) + ' UTC (24 hours after the last one was used).' : '';
     if (st.mode === 'unknown') return 'The user\'s plan details could not be loaded. Do not guess their usage.';
+    if (st.mode === 'trial') return 'The user is on the 7-day Pro free trial, active until ' + fmt(st.expiresAt) + '. They have ' + left + ' of ' + st.limit + ' generations left.' + back;
     if (st.mode === 'paid') return 'The user is on the ' + (TIERS()[st.tier] || TIERS().pro).label + ' plan, active until ' + fmt(st.expiresAt) + '. They have ' + left + ' of ' + st.limit + ' generations left.' + back;
-    if (st.mode === 'unpaid') return 'The user has no active paid plan and cannot use AI. Direct them to choose Starter, Pro, or Business.';
-    return 'The user has no active paid plan and cannot use AI. Direct them to choose Starter, Pro, or Business.';
+    if (st.mode === 'unpaid') return 'The user has no active plan and cannot use AI. They can start the one-time 7-day Pro trial or choose Starter, Pro, or Business.';
+    return 'The user has no active plan and cannot use AI. They can start the one-time 7-day Pro trial or choose Starter, Pro, or Business.';
   } catch (e) {
     return 'The user\'s plan details could not be loaded. Do not guess their usage.';
   }
@@ -41,7 +39,7 @@ async function userContext(user) {
 
 function system(ctx, ver) {
   const t = TIERS();
-  const rows = Object.values(t).map((x) => '- ' + x.label + ': PHP ' + x.monthly + ' per 30 days or PHP ' + x.yearly + ' per year; ' + x.gens + ' generations (refilled 24 hours after they are all used); AI quality ' + Q()[x.quality].label + ' (' + Q()[x.quality].speed.toLowerCase() + ', up to about ' + Math.round(ai.outputTokens(x.quality) / 1000) + 'K output tokens); React output ' + (x.react ? 'included' : 'not included') + '.').join('\n');
+  const rows = Object.values(t).map((x) => '- ' + x.label + ': PHP ' + x.monthly + ' per 30 days' + (x.label === 'Pro' ? ' or PHP ' + x.yearly + ' per year' : '') + '; ' + x.gens + ' generations (refilled 24 hours after they are all used); AI quality ' + Q()[x.quality].label + ' (' + Q()[x.quality].speed.toLowerCase() + ', up to about ' + Math.round(ai.outputTokens(x.quality) / 1000) + 'K output tokens); React output ' + (x.react ? 'included' : 'not included') + '.').join('\n');
   const support = (process.env.SUPPORT_CONTACT || '').trim();
   return [
     'You are the DRAW2CODE Help assistant: a friendly, very smart helper built into the DRAW2CODE AI web app. Your job is to help the user with whatever they need. You are a general-purpose AI helper, like ChatGPT or Gemini: you can answer ANY question and help with anything the user asks, such as general knowledge, school and homework, math, science, health and wellness information, business and money questions, writing and editing, translation, ideas and planning, coding and debugging (HTML, CSS, JavaScript, React and other languages), and everyday advice. You are also the expert on the DRAW2CODE AI system itself, described below.',
@@ -52,18 +50,18 @@ function system(ctx, ver) {
     '- Output frameworks: Bootstrap, Vanilla (plain HTML/CSS/JS) and React (React is for Pro and Business; Starter gets Bootstrap and Vanilla).',
     '- In the Studio page: upload an image, choose input type and framework, press generate, then use the live preview, edit the code, and download everything as a ZIP.',
     '- Projects are saved to the user\'s account and sync across devices (My Projects page).',
-    '- AI Debugger page: paste an error and code to get an explanation and fix. Errors in the live preview can also be sent to it. An active paid plan is required; paid users get up to 120 questions per hour.',
+    '- AI Debugger page: paste an error and code to get an explanation and fix. Errors in the live preview can also be sent to it. An active plan or the free trial is required; users get up to 120 questions per hour.',
     '- Pro Tools (Pro and Business plans only, not Starter): Business ROI calculator and a BIR tax estimator (planning estimate, not tax advice).',
-    '- A floating Help button (this assistant) is visible to signed-in users; an active paid plan is required to receive AI responses.',
+    '- A floating Help button (this assistant) is visible to signed-in users; an active plan or the free trial is required to receive AI responses.',
     '- Sign in with Google or email and password.',
     '- Current app version: ' + ver + ' (shown in the top bar, footer, Account page and What\'s new). It goes up automatically with every update. The system is developed by Roniel Nyke Gonzales (Sibaguan, Lambunao, Iloilo, Philippines) and is under a proprietary license (see the License page).',
     '',
     'PLANS AND PRICES (exact, never change them):',
-    '- All AI features (Generator, Help assistant, and AI Debugger) require an active paid Starter, Pro, or Business plan. The verified owner has unlimited app access. There is no free AI trial.',
+    '- A signed-in user can start one free 7-day Pro trial. It includes Standard AI quality, Pro features, and 10 generations per 24 hours; after it ends, an active paid plan is required. The verified owner has unlimited app access.',
     '- When a user uses up all their generations, they come back 24 hours after the moment the last one was used (for example used up at 3 PM, back at 3 PM the next day). This applies to every plan.',
     rows,
-    '- AI quality is real, not a label: Low uses a fast lightweight model with a smaller output limit; Standard uses a balanced model; High uses the most capable model with the deepest reasoning and the largest output limit (slower). The user\'s plan decides the level.',
-    '- Yearly plans last 365 days; monthly plans last 30 days.',
+    '- All paid plans use High AI quality. The free Pro trial uses Standard AI quality.',
+    '- Yearly billing is available for Pro only and lasts 365 days; monthly plans last 30 days.',
     '',
     'PAYMENTS:',
     '- Payment is real money through PayMongo checkout using GCash. There is no auto-renewal; paying again extends the plan.',
@@ -89,10 +87,11 @@ module.exports = async function handler(req, res) {
   const user = await verifyToken(bearer(req));
   if (!user) return send(res, 401, { error: 'Please sign in to chat with the assistant.' });
   const owner = isOwner(user);
+  let userPlan = null;
   if (!owner) {
-    const plan = await getPlan(user.uid);
-    if (plan.unknown) return send(res, 503, { error: 'We could not verify your active plan. Please try again shortly.' });
-    if (!plan.pro) return send(res, 402, { error: 'An active paid plan is required to use the Help assistant. Choose Starter, Pro, or Business to continue.', upgrade: true });
+    userPlan = await getPlan(user.uid);
+    if (userPlan.unknown) return send(res, 503, { error: 'We could not verify your active plan. Please try again shortly.' });
+    if (!userPlan.pro) return send(res, 402, { error: 'An active plan or free trial is required to use the Help assistant. Choose a plan or start your trial.', upgrade: true });
   }
   if (limited(user.uid, owner)) return send(res, 429, { error: 'You sent many messages. Please try again in a little while.' });
 
@@ -113,7 +112,7 @@ module.exports = async function handler(req, res) {
   try {
     const ctx = await userContext(user);
     const ver = versionApi.floorVersion();
-    const quality = chatQuality();
+    const quality = owner ? 'high' : userPlan.trial ? 'standard' : (TIERS()[userPlan.tier] || TIERS().pro).quality;
     const model = quality === 'low' ? (process.env.ASSISTANT_GEMINI_MODEL || ai.DEFAULT_MODEL.gemini.low) : undefined;
     const up = await ai.open({ system: system(ctx, 'v' + ver), messages: msgs, maxTokens: 1200, quality, model, providerTimeoutMs: 12000, signal: ac.signal });
     if (!up.ok) {

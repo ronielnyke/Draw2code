@@ -1,7 +1,7 @@
 // DRAW2CODE AI v2 — pages router, plans/GCash, ROI calculator, AI Debugger, Help assistant, version check.
 // Runs next to app.js and talks to it through window.D2C and the d2c:* events.
 
-const FALLBACK_VERSION = '2.4.20'; // only a last resort; the real number is automatic (see initVersion)
+const FALLBACK_VERSION = '2.5.21'; // only a last resort; the real number is automatic (see initVersion)
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -56,10 +56,10 @@ function renderGuards() {
   $('#debugLocked').classList.toggle('d-none', !!u);
   $('#debugPlanLocked').classList.toggle('d-none', !u || canUseAi);
   $('#debugApp').classList.toggle('d-none', !canUseAi);
-  $('#debugPlanTitle').textContent = ex.plan.unknown ? 'Plan status unavailable' : 'An active paid plan is required';
+  $('#debugPlanTitle').textContent = ex.plan.unknown ? 'Plan status unavailable' : 'An active plan or free trial is required';
   $('#debugPlanCopy').textContent = ex.plan.unknown
     ? 'We could not verify your plan right now. Please try again from your Account page.'
-    : 'Choose Starter, Pro, or Business to use the AI Debugger. The verified owner has unlimited app access.';
+    : 'Start your 7-day free trial or choose Starter, Pro, or Business to use the AI Debugger. The verified owner has unlimited app access.';
   $('#debugPlanLink').textContent = ex.plan.unknown ? 'Check account status' : 'View plans';
   $('#debugPlanLink').href = ex.plan.unknown ? '#/account' : '#/pricing';
   $('#accountLocked').classList.toggle('d-none', !!u);
@@ -167,14 +167,14 @@ function renderAccount() {
   $('#acctName').textContent = u.displayName || (u.email || '').split('@')[0] || '—';
   $('#acctEmail').textContent = u.email || '—';
   $('#acctPlan').innerHTML = '<span class="plan-chip' + (ex.plan.pro || ex.plan.owner ? ' pro' : '') + '">' + (ex.plan.pro || ex.plan.owner ? '<i class="bi bi-gem"></i> ' : '') + esc(planName()) + '</span>';
-  $('#acctExpLabel').textContent = ex.plan.pro ? 'Active until' : 'Plan status';
-  $('#acctExpiry').textContent = ex.plan.owner ? 'Never (owner)' : ex.plan.pro ? fmtDate(ex.plan.expiresAt) : ex.plan.unknown ? 'Could not verify plan status' : 'No active plan · subscribe to use AI';
+  $('#acctExpLabel').textContent = ex.plan.trial ? 'Trial ends' : ex.plan.pro ? 'Active until' : 'Plan status';
+  $('#acctExpiry').textContent = ex.plan.owner ? 'Never (owner)' : ex.plan.pro ? fmtDate(ex.plan.expiresAt) : ex.plan.unknown ? 'Could not verify plan status' : ex.plan.trialUsed ? 'Free trial ended · choose a paid plan' : 'No active plan · start your free trial';
   tickCountdown();
   $('#acctUsed').textContent = ex.plan.used || 0;
   $('#acctLimit').textContent = ex.plan.owner ? '∞' : (ex.plan.limit || 0);
   const pct = ex.plan.limit ? Math.min(100, ((ex.plan.used || 0) / ex.plan.limit) * 100) : 0;
   $('#acctBar').style.width = pct + '%';
-  $('#acctReset').textContent = ex.plan.owner ? 'Never needed' : ex.plan.pro && ex.plan.resetAt ? fmtWhen(ex.plan.resetAt) + ' (in ' + fmtLeft(ex.plan.resetAt - Date.now()) + ')' : ex.plan.pro ? 'When you use them all, they come back 24 hours later' : ex.plan.unknown ? 'Try refreshing your plan status' : 'An active paid plan is required to use AI';
+  $('#acctReset').textContent = ex.plan.owner ? 'Never needed' : ex.plan.pro && ex.plan.resetAt ? fmtWhen(ex.plan.resetAt) + ' (in ' + fmtLeft(ex.plan.resetAt - Date.now()) + ')' : ex.plan.pro ? 'When you use them all, they come back 24 hours later' : ex.plan.unknown ? 'Try refreshing your plan status' : ex.plan.trialUsed ? 'Choose a paid plan to continue using AI' : 'Start a free trial or choose a paid plan to use AI';
   renderSetup();
 }
 
@@ -257,7 +257,7 @@ async function verifyPayment(showErrors) {
 }
 
 /* --------------------------------------------------------------- Pricing */
-function tierLabel() { if (ex.plan.owner) return 'Owner'; const t = ex.tiers[ex.plan.tier]; return t ? t.label : 'Pro'; }
+function tierLabel() { if (ex.plan.owner) return 'Owner'; const t = ex.tiers[ex.plan.tier]; return (t ? t.label : 'Pro') + (ex.plan.trial ? ' Trial' : ''); }
 /** Name of the plan the user is on right now (shown in chips and the account page). */
 function planName() { return ex.plan.pro || ex.plan.owner ? tierLabel() : ex.plan.unknown ? 'Plan status unavailable' : 'Free account'; }
 
@@ -278,7 +278,7 @@ function renderQuota() {
     return;
   }
   if (p.mode === 'unpaid') {
-    el.innerHTML = '<i class="bi bi-lock-fill"></i> An active paid plan is required to use AI · <a href="#/pricing">View plans</a>';
+    el.innerHTML = '<i class="bi bi-lock-fill"></i> Start a free trial or choose a paid plan to use AI · <a href="#/pricing">View plans</a>';
     el.classList.add('empty');
     return;
   }
@@ -298,7 +298,7 @@ function applyFrameworkLocks() {
     const ok = allowed.includes(r.value);
     r.disabled = !ok;
     const row = r.closest('.opt-row');
-    if (row) { row.classList.toggle('locked', !ok); row.title = ok ? '' : ex.plan.mode === 'unpaid' ? 'An active paid plan is required to use AI' : 'Not included in your plan'; }
+    if (row) { row.classList.toggle('locked', !ok); row.title = ok ? '' : ex.plan.mode === 'unpaid' ? 'A free trial or active paid plan is required to use AI' : 'Not included in your plan'; }
   });
   const cur = radios.find((r) => r.checked);
   if (cur && cur.disabled) { const first = radios.find((r) => !r.disabled); if (first) { first.checked = true; first.dispatchEvent(new Event('change', { bubbles: true })); } }
@@ -336,7 +336,8 @@ function renderPricing() {
   const per = ex.period === 'yearly' ? '/ year' : '/ 30 days';
   Object.entries(ex.tiers).forEach(([k, t]) => {
     const price = $('[data-price="' + k + '"]'), gens = $('[data-gens="' + k + '"]');
-    if (price) { price.textContent = '₱' + (ex.period === 'yearly' ? t.yearly : t.monthly).toLocaleString('en-PH'); price.nextElementSibling.textContent = per; }
+    const annualUnavailable = ex.period === 'yearly' && k !== 'pro';
+    if (price) { price.textContent = annualUnavailable ? '—' : '₱' + (ex.period === 'yearly' ? t.yearly : t.monthly).toLocaleString('en-PH'); price.nextElementSibling.textContent = annualUnavailable ? 'Pro yearly only' : per; }
     if (gens) gens.textContent = t.gens;
   });
   const p = ex.tiers.pro;
@@ -346,11 +347,19 @@ function renderPricing() {
   const signed = D2C() && D2C().state.user;
   $$('.btn-buy').forEach((btn) => {
     const same = ex.plan.pro && ex.plan.tier === btn.dataset.tier;
-    btn.disabled = !!ex.plan.owner;
-    btn.querySelector('span').textContent = ex.plan.owner ? 'Included for owner' : !signed ? 'Sign in to subscribe' : same ? 'Renew / extend' : 'Pay with GCash';
+    const annualUnavailable = ex.period === 'yearly' && btn.dataset.tier !== 'pro';
+    btn.disabled = !!ex.plan.owner || annualUnavailable;
+    btn.querySelector('span').textContent = ex.plan.owner ? 'Included for owner' : annualUnavailable ? 'Yearly is Pro only' : !signed ? 'Sign in to subscribe' : same ? 'Renew / extend' : 'Pay with GCash';
   });
+  const trialBtn = $('#btnStartTrial');
+  trialBtn.hidden = !!(ex.plan.owner || ex.plan.pro || ex.plan.trialUsed || ex.plan.unknown);
+  trialBtn.disabled = !!ex.trialBusy;
+  trialBtn.querySelector('span').textContent = !signed ? 'Sign in to start 7-day trial' : ex.trialBusy ? 'Starting trial…' : 'Start 7-day Pro trial';
   $('#buyHint').textContent = ex.plan.owner ? 'Owner account: full access, no payment needed'
+    : ex.plan.trial ? 'Your Pro free trial is active until ' + fmtDate(ex.plan.expiresAt) + ' · 10 generations per 24 hours'
     : ex.plan.pro ? tierLabel() + ' active until ' + fmtDate(ex.plan.expiresAt)
+    : ex.plan.trialUsed ? 'Your 7-day free trial has ended · choose a paid plan to continue'
+    : !signed ? 'Start a 7-day Pro trial after signing in · no payment required'
     : !ex.cfg.payments ? 'Payments are not set up yet. Please check back soon.'
     : ex.cfg.live ? 'Real payment via PayMongo · GCash · no auto-renewal'
     : 'TEST MODE: no real money is charged yet · GCash via PayMongo';
@@ -374,6 +383,27 @@ async function buyPro(tier) {
   }
 }
 
+async function startTrial() {
+  const err = $('#buyError');
+  err.classList.add('d-none');
+  if (!D2C().state.user) { D2C().openAuth('login'); return; }
+  ex.trialBusy = true;
+  renderPricing();
+  try {
+    await api('/api/billing', { method: 'POST', body: JSON.stringify({ action: 'start-trial' }) });
+    await refreshPlan();
+    renderPricing();
+    renderAccount();
+    toast('Your 7-day Pro trial is active!', 'ok', 6000);
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.remove('d-none');
+  } finally {
+    ex.trialBusy = false;
+    renderPricing();
+  }
+}
+
 function calcRoi() {
   const hours = +$('#roiHours').value, pages = +$('#roiPages').value, rate = +$('#roiRate').value, saved = +$('#roiSaved').value;
   $('#roiHoursV').textContent = hours; $('#roiPagesV').textContent = pages; $('#roiRateV').textContent = rate; $('#roiSavedV').textContent = saved;
@@ -394,6 +424,7 @@ function calcRoi() {
 function initPricing() {
   $$('.billing-toggle[aria-label="Billing period"] button').forEach((b) => b.addEventListener('click', () => { ex.period = b.dataset.period; renderPricing(); }));
   $$('.btn-buy').forEach((b) => b.addEventListener('click', () => buyPro(b.dataset.tier)));
+  $('#btnStartTrial').addEventListener('click', startTrial);
   $$('#roi input[type=range]').forEach((i) => i.addEventListener('input', calcRoi));
   $('#btnCheckPay').addEventListener('click', () => verifyPayment(true));
   calcRoi();
@@ -664,7 +695,7 @@ function astWelcome() {
   $('#astLog').innerHTML = '';
   const u = D2C() && D2C().state.user;
   astAdd('assistant', u
-    ? 'Hi! I am your DRAW2CODE AI assistant. An active paid plan is required for AI replies (the verified owner has unlimited app access). Ask me anything, in any language: questions, code, writing, ideas, or help with plans, payments and how to use the system.'
+    ? 'Hi! I am your DRAW2CODE AI assistant. A free trial or active paid plan is required for AI replies (the verified owner has unlimited app access). Ask me anything, in any language: questions, code, writing, ideas, or help with plans, payments and how to use the system.'
     : 'Hi! Please sign in first so we can chat. Then you can ask me anything, in any language.');
   ast.chat = [];
   $('#astChips').classList.remove('d-none');

@@ -14,7 +14,7 @@ service cloud.firestore {
         }
       }
 
-      // Plan, usage and payments are written by the server on the user's behalf and every record carries an HMAC
+      // Plan, usage, trial and payments are written by the server on the user's behalf and every record carries an HMAC
       // signature ("sig") that only the server can make. The server ignores any record without a valid signature, so a
       // user can never grant themselves a paid plan. Records can be created and changed but never deleted (so usage
       // cannot be reset by deleting the record, and a payment cannot be activated twice).

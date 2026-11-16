@@ -35,7 +35,7 @@
       <a class="navbar-brand brand" href="#/home" aria-label="DRAW2CODE AI home">
         <span class="brand-mark"><i class="bi bi-brush-fill"></i></span>
         <span>DRAW2CODE <b>AI</b></span>
-        <span class="ver-chip" data-version>v2.4.20</span>
+        <span class="ver-chip" data-version>v2.5.21</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" aria-controls="navMenu" aria-expanded="false" aria-label="Toggle navigation">
         <i class="bi bi-list fs-2"></i>
@@ -50,7 +50,7 @@
           <li class="nav-item"><a class="nav-link" data-nav="debug" href="#/debug"><i class="bi bi-bug me-1"></i>AI Debugger</a></li>
           <li class="nav-item"><a class="nav-link" data-nav="tools" href="#/tools"><i class="bi bi-briefcase me-1"></i>Pro Tools</a></li>
           <li class="nav-item"><a class="nav-link" data-nav="pricing" href="#/pricing"><i class="bi bi-gem me-1"></i>Pricing</a></li>
-          <li class="nav-item nav-ver d-xl-none"><a class="nav-link" href="#/changelog"><i class="bi bi-tag me-1"></i>Version <b data-version>v2.4.20</b> <small class="text-secondary" data-version-date="short"></small></a></li>
+          <li class="nav-item nav-ver d-xl-none"><a class="nav-link" href="#/changelog"><i class="bi bi-tag me-1"></i>Version <b data-version>v2.5.21</b> <small class="text-secondary" data-version-date="short"></small></a></li>
         </ul>
         <div class="d-flex align-items-center gap-2 nav-actions">
           <span class="sync-badge d-none" id="syncBadge" title="Cloud sync status"><i class="bi bi-cloud-check"></i><span>Synced</span></span>
@@ -371,11 +371,12 @@
           <div class="section-head reveal">
             <span class="eyebrow"><i class="bi bi-gem"></i> Plans</span>
             <h2>Choose the plan that fits you</h2>
-            <p>An active paid plan is required for all AI features. Pay with <b>GCash</b> through secure PayMongo checkout. You get an email receipt and there is no auto-renewal.</p>
+            <p>Try Pro free for 7 days with Standard AI and 10 generations per 24 hours. After your trial, choose a paid plan. Annual billing is available for Pro only; all paid plans include High AI quality and have no auto-renewal.</p>
             <div class="billing-toggle mt-3" role="group" aria-label="Billing period">
               <button type="button" class="active" data-period="monthly">30 days</button>
               <button type="button" data-period="yearly">1 year <span class="save-tag">Save up to 60%</span></button>
             </div>
+            <div class="small text-secondary mt-2">Yearly billing is available for Pro only.</div>
           </div>
 
           <div class="row g-4 justify-content-center">
@@ -411,6 +412,8 @@
                   <li><i class="bi bi-check2"></i> <b>Pro Tools:</b> Business ROI + BIR tax estimator</li>
                 </ul>
                 <button class="btn btn-brand w-100 btn-lg btn-buy" data-tier="pro" type="button"><i class="bi bi-wallet2 me-2"></i><span>Pay with GCash</span></button>
+                <button class="btn btn-ghost w-100 mt-2" id="btnStartTrial" type="button"><i class="bi bi-gift me-2"></i><span>Start 7-day Pro trial</span></button>
+                <div class="small text-secondary mt-2">One trial per account · Standard AI · 10 generations per 24 hours</div>
               </div>
             </div>
             <div class="col-md-6 col-xl-4 reveal" style="--d:0.08s">
@@ -421,7 +424,7 @@
                 <ul class="plan-list">
                   <li><i class="bi bi-check2"></i> <span data-gens="business">0</span> generations, back 24 hours after you use them all</li>
                   <li><i class="bi bi-check2"></i> Everything in Pro</li>
-                  <li><i class="bi bi-check2"></i> <b>Highest AI quality</b> and the largest output size</li>
+                  <li><i class="bi bi-check2"></i> High AI quality and 250 generations</li>
                   <li><i class="bi bi-check2"></i> Best for agencies and freelancers building for clients</li>
                 </ul>
                 <button class="btn btn-brand w-100 btn-lg btn-buy" data-tier="business" type="button"><i class="bi bi-wallet2 me-2"></i><span>Pay with GCash</span></button>
@@ -474,11 +477,11 @@
         <div class="container" style="max-width:820px">
           <div class="section-head reveal"><h2>Frequently asked questions</h2></div>
           <div class="accordion faq" id="faq">
-            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f1">Can I use the AI for free?</button></h3><div id="f1" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">No. An active Starter, Pro or Business plan is required for the Generator, Help assistant and AI Debugger. The verified owner has unlimited app access. You can still sign in and manage existing projects without an active plan.</div></div></div>
+            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f1">Can I use the AI for free?</button></h3><div id="f1" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">Yes. Sign in to start one 7-day Pro trial, with Standard AI quality and 10 generations per 24 hours. The trial does not renew automatically. After it ends, choose a paid plan to keep using AI.</div></div></div>
             <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f2">How do I pay with GCash?</button></h3><div id="f2" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">Choose a plan and press <b>Pay with GCash</b>. You are redirected to PayMongo's secure checkout, where you pay with your GCash account. When you return to the app, your plan is activated automatically.</div></div></div>
-            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f3">What do Low, Standard and High AI quality mean?</button></h3><div id="f3" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">It is the level of AI used for your generations. <b>Low</b> (Starter) is the fastest and uses a lightweight model with a smaller output size. <b>Standard</b> (Pro) is balanced and good for most full websites. <b>High</b> (Business) uses the most capable model with the deepest reasoning and the largest output size, so it is slower but handles complex designs better.</div></div></div>
+            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f3">What AI quality do paid plans include?</button></h3><div id="f3" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">All paid plans use <b>High</b> AI quality. The 7-day Pro trial uses <b>Standard</b> quality. High uses the most capable model with the deepest reasoning and largest output size.</div></div></div>
             <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f4">Which plan includes React and Pro Tools?</button></h3><div id="f4" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">React output and Pro Tools (Business ROI calculator and BIR tax estimator) are included in <b>Pro</b> and <b>Business</b>. Starter includes Bootstrap and Vanilla output.</div></div></div>
-            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f5">Does my plan renew automatically? When do my generations come back?</button></h3><div id="f5" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">No. Each purchase is a one-time payment for 30 days or 1 year. If you buy again while your plan is active, the new days are added to your remaining time. On every plan, when you use up all your generations they come back <b>24 hours after the moment you used the last one</b>. For example, used up at 3 PM today, back at 3 PM tomorrow. The Studio and your Account page show exactly when.</div></div></div>
+            <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f5">Does my plan renew automatically? When do my generations come back?</button></h3><div id="f5" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">No. Each purchase is a one-time payment for 30 days, or 1 year for Pro only. If you buy again while your plan is active, the new days are added to your remaining time. On every plan, when you use up all your generations they come back <b>24 hours after the moment you used the last one</b>. For example, used up at 3 PM today, back at 3 PM tomorrow. The Studio and your Account page show exactly when.</div></div></div>
             <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f6">Do I get a receipt? What about BIR?</button></h3><div id="f6" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">PayMongo emails you a payment receipt. This app does not issue BIR invoices. If you need a BIR-registered invoice for your business, contact the seller after paying and include your payment reference. The BIR Tax Estimator in Pro Tools is a calculator for planning your own income tax. It does not file or pay taxes for you.</div></div></div>
             <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#f7">My plan was not activated after I paid</button></h3><div id="f7" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">Open <b>Account &amp; Plan</b> and press <b>Check payment</b>. It also finds payments made on another device. A backup webhook activates the plan within a few minutes as well. If it still does not show, contact the seller with your payment reference.</div></div></div></div>
           </div>
@@ -605,7 +608,7 @@
           <div class="section-head reveal">
             <span class="eyebrow"><i class="bi bi-bug"></i> AI Debugger</span>
             <h2>Find out why your code has an error</h2>
-            <p>An active paid plan is required to use the AI Debugger. Paid plans include up to 120 questions per hour; the verified owner has unlimited app access.</p>
+            <p>Start your free 7-day trial or choose a paid plan to use the AI Debugger. Plans include up to 120 questions per hour; the verified owner has unlimited app access.</p>
           </div>
 
           <div class="locked-panel d-none" id="debugLocked">
@@ -617,8 +620,8 @@
 
           <div class="locked-panel d-none" id="debugPlanLocked">
             <div class="lock-icon"><i class="bi bi-gem"></i></div>
-            <h3 id="debugPlanTitle">An active paid plan is required</h3>
-            <p id="debugPlanCopy">Choose Starter, Pro, or Business to use the AI Debugger. The verified owner has unlimited app access.</p>
+            <h3 id="debugPlanTitle">An active plan or free trial is required</h3>
+            <p id="debugPlanCopy">Start your 7-day free trial or choose Starter, Pro, or Business to use the AI Debugger. The verified owner has unlimited app access.</p>
             <a class="btn btn-brand btn-lg" id="debugPlanLink" href="#/pricing"><i class="bi bi-gem me-2"></i><span>View plans</span></a>
           </div>
 
@@ -751,7 +754,7 @@
                 <div class="panel-title"><i class="bi bi-person-circle"></i> Profile</div>
                 <div class="acct-row"><small>Name</small><b id="acctName">—</b></div>
                 <div class="acct-row"><small>Email</small><b id="acctEmail">—</b></div>
-                <div class="acct-row"><small>App version</small><b data-version>v2.4.20</b></div>
+                <div class="acct-row"><small>App version</small><b data-version>v2.5.21</b></div>
                 <div class="acct-row"><small>Last updated</small><b data-version-date>—</b></div>
                 <div class="acct-row"><small>Software license</small><b><a href="#/license">Proprietary v1.1 · Roniel Nyke Gonzales</a></b></div>
               </div></div>
@@ -794,9 +797,9 @@
             <div class="lic-body">
 <p class="lic-meta">Copyright (c) 2026 Roniel Nyke Gonzales Sibaguan, Lambunao, Iloilo, Philippines All rights reserved.</p>
 <div class="lic-sec"><h3><span>1</span>Ownership</h3><p>DRAW2CODE AI (the &quot;Software&quot;), including its source code, design, text, logo and documentation, is the original work of Roniel Nyke Gonzales (the &quot;Owner&quot;) and is protected by the copyright laws of the Republic of the Philippines (Republic Act No. 8293, the Intellectual Property Code of the Philippines) and by international treaties. No title or ownership is transferred to anyone by use, access, purchase of a plan, or receipt of a copy.</p></div>
-<div class="lic-sec"><h3><span>2</span>License Grant To Users</h3><p>Subject to these terms, the Owner grants the user a limited, non-exclusive, non-transferable, revocable license to access the hosted Software through its website. Using any AI feature requires an active paid Starter, Pro or Business plan, except for the verified Owner account. A free account may use non-AI account and project-management features. Website code generated for the user from the user&#x27;s own uploaded images belongs to the user, who is responsible for having the right to use the images they upload.</p></div>
+<div class="lic-sec"><h3><span>2</span>License Grant To Users</h3><p>Subject to these terms, the Owner grants the user a limited, non-exclusive, non-transferable, revocable license to access the hosted Software through its website. Using AI features requires an active paid plan or the one-time 7-day free Pro trial, except for the verified Owner account. A free account may use non-AI account and project-management features. Website code generated for the user from the user&#x27;s own uploaded images belongs to the user, who is responsible for having the right to use the images they upload.</p></div>
 <div class="lic-sec"><h3><span>3</span>Restrictions</h3><p>Without the Owner&#x27;s prior written permission, you may NOT:</p><ul><li>copy, modify, merge, publish, distribute, sublicense, sell, rent or lease the Software or any part of its source code;</li><li>reverse engineer, decompile or attempt to extract the source code, except where the law allows it despite this restriction;</li><li>host your own copy of the Software, or offer it or a clone of it to others as a service;</li><li>remove or change any copyright, owner or license notice;</li><li>bypass, tamper with or share access to plan limits, payment checks or other access controls;</li><li>use the Software for unlawful purposes or to infringe the rights of others.</li></ul></div>
-<div class="lic-sec"><h3><span>4</span>Paid Plans</h3><p>Paid plans are one-time payments for the period shown at checkout (30 days or 1 year), with no automatic renewal. AI access ends when the paid period ends. There is no free AI trial; the verified Owner account has unlimited app-level access. The Owner may change prices and plans for future purchases.</p></div>
+<div class="lic-sec"><h3><span>4</span>Paid Plans</h3><p>Paid plans are one-time payments for the period shown at checkout (30 days, or 1 year for Pro only), with no automatic renewal. AI access ends when the paid period ends. A one-time free Pro trial lasts 7 days and includes Standard AI quality. The verified Owner account has unlimited app-level access. The Owner may change prices and plans for future purchases.</p></div>
 <div class="lic-sec"><h3><span>5</span>Third-Party Components</h3><p>The Software uses third-party components (for example Bootstrap, Bootstrap Icons, Firebase, and PayMongo services). They remain under their own licenses and terms, which are not changed by this license.</p></div>
 <div class="lic-sec"><h3><span>6</span>Termination</h3><p>The Owner may suspend or end access if these terms are broken. On termination the user must stop using the Software. Sections 1, 3, 7, 8 and 9 continue to apply.</p></div>
 <div class="lic-sec"><h3><span>7</span>No Warranty</h3><p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT AND UNINTERRUPTED OR ERROR-FREE OPERATION. AI-generated output may contain mistakes; the user must review it before use. Tax and ROI figures in Pro Tools are estimates for planning only and are not tax, legal or financial advice.</p></div>
@@ -813,7 +816,7 @@
     <div class="page page-top" data-page="changelog" hidden>
       <section class="section">
         <div class="container" style="max-width:820px">
-          <div class="section-head reveal"><span class="eyebrow"><i class="bi bi-rocket-takeoff"></i> What's new</span><h2>Version history</h2><p>Current version: <b data-version>v2.4.20</b> <span class="text-secondary" id="relDate"></span><br><small class="text-secondary">The version number goes up automatically every time the app is updated.</small></p></div>
+          <div class="section-head reveal"><span class="eyebrow"><i class="bi bi-rocket-takeoff"></i> What's new</span><h2>Version history</h2><p>Current version: <b data-version>v2.5.21</b> <span class="text-secondary" id="relDate"></span><br><small class="text-secondary">The version number goes up automatically every time the app is updated.</small></p></div>
           <h3 class="tl-head d-none" id="liveReleasesHead">Recent updates</h3>
           <div class="timeline" id="liveReleases"></div>
           <h3 class="tl-head">Highlights</h3>
@@ -858,7 +861,7 @@
       </div>
       <div class="footer-bottom">
         <span>© <span id="year">2026</span> DRAW2CODE AI. All rights reserved. · <a href="#/license" class="ver-link">Licensed software</a></span>
-        <span><a href="#/changelog" class="ver-link" data-version>v2.4.20</a> <span class="ver-date">· updated <span data-version-date="short">—</span></span> · Designed &amp; developed by <b>Roniel Nyke Gonzales</b> · <i class="bi bi-geo-alt-fill"></i> Sibaguan, Lambunao, Iloilo, Philippines</span>
+        <span><a href="#/changelog" class="ver-link" data-version>v2.5.21</a> <span class="ver-date">· updated <span data-version-date="short">—</span></span> · Designed &amp; developed by <b>Roniel Nyke Gonzales</b> · <i class="bi bi-geo-alt-fill"></i> Sibaguan, Lambunao, Iloilo, Philippines</span>
       </div>
     </div>
   </footer>
@@ -915,7 +918,7 @@
   <section class="ast-panel d-none" id="astPanel" role="dialog" aria-label="DRAW2CODE help assistant">
     <header class="ast-head">
       <div class="ast-av"><i class="bi bi-stars"></i></div>
-      <div class="ast-title"><b>DRAW2CODE Help</b><small>AI assistant · <span data-version>v2.4.20</span> · <span data-version-date="short">—</span></small></div>
+      <div class="ast-title"><b>DRAW2CODE Help</b><small>AI assistant · <span data-version>v2.5.21</span> · <span data-version-date="short">—</span></small></div>
       <button class="ast-x" id="astClose" type="button" aria-label="Close help assistant"><i class="bi bi-x-lg"></i></button>
     </header>
     <div class="ast-log" id="astLog" aria-live="polite"></div>

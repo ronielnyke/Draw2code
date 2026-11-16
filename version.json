@@ -1,9 +1,14 @@
 {
-  "base": "2.4",
-  "build": 20,
-  "released": "2026-11-15",
-  "releasedAt": "2026-11-15T22:31:26+08:00",
+  "base": "2.5",
+  "build": 21,
+  "released": "2026-11-16",
+  "releasedAt": "2026-11-16T20:27:46+08:00",
   "releases": [
+    {
+      "version": "2.5.21",
+      "at": "2026-11-16T20:27:46+08:00",
+      "note": "Add a one-time 7-day Pro trial, High AI quality for paid plans, and Pro-only yearly billing."
+    },
     {
       "version": "2.4.20",
       "at": "2026-11-15T22:31:26+08:00",

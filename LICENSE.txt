@@ -14,8 +14,10 @@ ownership is transferred to anyone by use, access, purchase of a plan, or receip
 2. LICENSE GRANT TO USERS
 Subject to these terms, the Owner grants the user a limited, non-exclusive,
 non-transferable, revocable license to access the hosted Software through its website.
-Using any AI feature requires an active paid Starter, Pro or Business plan, except for the
-verified Owner account. A free account may use non-AI account and project-management features.
+Using any AI feature requires an active paid Starter, Pro or Business plan or the one-time
+7-day free Pro trial, except for the verified Owner account. The trial includes Standard AI
+quality and 10 generations per 24 hours. A free account may use non-AI account and
+project-management features.
 Website code generated for the user from the user's own uploaded images belongs to the user,
 who is responsible for having the right to use the images they upload.
 
@@ -32,10 +34,10 @@ Without the Owner's prior written permission, you may NOT:
   f. use the Software for unlawful purposes or to infringe the rights of others.
 
 4. PAID PLANS
-Paid plans are one-time payments for the period shown at checkout (30 days or 1 year), with no
-automatic renewal. AI access ends when the paid period ends. There is no free AI trial; the
-verified Owner account has unlimited app-level access. The Owner may change prices and plans
-for future purchases.
+Paid plans are one-time payments for the period shown at checkout (30 days, or 1 year for Pro
+only), with no automatic renewal. AI access ends when the paid period ends. The free Pro trial
+is available once per account and lasts 7 days; the verified Owner account has unlimited
+app-level access. The Owner may change prices and plans for future purchases.
 
 5. THIRD-PARTY COMPONENTS
 The Software uses third-party components (for example Bootstrap, Bootstrap Icons, Firebase,

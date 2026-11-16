@@ -39,7 +39,7 @@ module.exports = async function handler(req, res) {
   const owner = isOwner(user);
   const plan = owner ? { pro: true } : await getPlan(user.uid);
   if (!owner && plan.unknown) return send(res, 503, { error: 'We could not verify your active plan. Please try again shortly.' });
-  if (!owner && !plan.pro) return send(res, 402, { error: 'An active paid plan is required to use the AI Debugger. Choose Starter, Pro, or Business to continue.', upgrade: true });
+  if (!owner && !plan.pro) return send(res, 402, { error: 'An active plan or free trial is required to use the AI Debugger. Start a trial or choose Starter, Pro, or Business.', upgrade: true });
   if (!owner && limited(user.uid, plan.pro)) return send(res, 429, { error: 'Hourly limit reached. Try again later.' });
 
   const body = readBody(req);

@@ -1,7 +1,7 @@
 'use strict';
 // GET  /api/billing                 -> { pro, expiresAt, used, limit, configured }
 // POST /api/billing { sessionId }   -> verifies a PayMongo checkout session and activates the plan
-const { health, isOwner, send, verifyToken, bearer, readBody, status, frameworksFor, TIERS, grantPro, getDb, PLANS, WINDOW_MS } = require('./_admin');
+const { health, isOwner, send, verifyToken, bearer, readBody, status, frameworksFor, TIERS, grantPro, startTrial, trialUsed, getDb, PLANS, WINDOW_MS } = require('./_admin');
 
 function paidInfo(d) {
   const a = (d && d.attributes) || {};
@@ -48,12 +48,16 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
     const paymentsLive = (process.env.PAYMONGO_SECRET_KEY || '').trim().startsWith('sk_live_');
     const payments = !!(process.env.PAYMONGO_SECRET_KEY || '').trim();
-    if (isOwner(user)) return send(res, 200, { pro: true, owner: true, tools: true, mode: 'owner', tier: 'owner', expiresAt: 0, used: 0, limit: 0, resetAt: 0, frameworks: frameworksFor('owner'), unknown: false, configured: !!getDb(), payments, paymentsLive, setup: await health(user) });
+    if (isOwner(user)) return send(res, 200, { pro: true, owner: true, trialUsed: true, tools: true, mode: 'owner', tier: 'owner', expiresAt: 0, used: 0, limit: 0, resetAt: 0, frameworks: frameworksFor('owner'), unknown: false, configured: !!getDb(), payments, paymentsLive, setup: await health(user) });
     await reconcile(user);
     const st = await status(user.uid);
+    let hasUsedTrial = true;
+    try { hasUsedTrial = await trialUsed(user.uid); } catch (e) { console.error('trial status failed:', e && e.message); }
     return send(res, 200, {
-      pro: st.mode === 'paid',
-      tools: st.mode === 'paid' && !!(TIERS()[st.tier] || TIERS().pro).tools,
+      pro: st.mode === 'paid' || st.mode === 'trial',
+      trial: st.mode === 'trial',
+      trialUsed: hasUsedTrial,
+      tools: (st.mode === 'paid' || st.mode === 'trial') && !!(TIERS()[st.tier] || TIERS().pro).tools,
       mode: st.mode,
       tier: st.tier,
       expiresAt: st.expiresAt,
@@ -61,7 +65,7 @@ module.exports = async function handler(req, res) {
       limit: st.limit,
       resetAt: st.resetAt,
       windowHours: WINDOW_MS / 3600000,
-      frameworks: frameworksFor(st.mode, st.tier),
+      frameworks: frameworksFor(st.mode === 'trial' ? 'paid' : st.mode, st.tier),
       unknown: !!st.unknown,
       configured: !!getDb(),
       payments,
@@ -71,9 +75,25 @@ module.exports = async function handler(req, res) {
 
   if (req.method !== 'POST') { res.setHeader('Allow', 'GET, POST'); return send(res, 405, { error: 'Method not allowed' }); }
 
+  const body = readBody(req) || {};
+  if (body.action === 'start-trial') {
+    if (isOwner(user)) return send(res, 409, { error: 'The verified owner already has unlimited access.' });
+    try {
+      const result = await startTrial(user.uid);
+      if (!result.ok) {
+        const message = result.reason === 'already_used'
+          ? 'Your 7-day free trial has already been used.'
+          : 'An active plan is already on your account.';
+        return send(res, 409, { error: message });
+      }
+      return send(res, 200, { trial: true, expiresAt: result.expiresAt });
+    } catch (e) {
+      console.error('trial start failed:', e && e.message);
+      return send(res, 503, { error: e && e.message || 'Could not start the free trial. Please try again.' });
+    }
+  }
   const secret = (process.env.PAYMONGO_SECRET_KEY || '').trim();
   if (!secret) return send(res, 503, { error: 'Payments are not set up yet.' });
-  const body = readBody(req) || {};
   let ids = [];
   const one = String(body.sessionId || '').replace(/[^\w-]/g, '');
   if (one) ids = [one];

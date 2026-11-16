@@ -13,7 +13,10 @@ module.exports = async function handler(req, res) {
   if (isOwner(user)) return send(res, 409, { error: 'The verified owner already has unlimited access. No payment is needed.' });
 
   const body = readBody(req) || {};
-  const planKey = PLANS()[body.plan] ? body.plan : 'pro_monthly';
+  const planKey = body.plan === 'monthly' || body.plan === 'yearly' ? body.plan : String(body.plan || '');
+  if (!PLANS()[planKey] || (planKey.endsWith('_yearly') && planKey !== 'pro_yearly')) {
+    return send(res, 400, { error: 'That billing option is not available. Yearly billing is Pro only.' });
+  }
   const plan = PLANS()[planKey];
   const origin = (process.env.PUBLIC_URL || (req.headers['x-forwarded-proto'] || 'https') + '://' + req.headers.host).replace(/\/$/, '');
 

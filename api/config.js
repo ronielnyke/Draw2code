@@ -53,5 +53,5 @@ module.exports = function handler(req, res) {
 
   res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
   return send(res, 200, { firebase, ai: ai.info().configured, aiKey: ai.info().keyName, payments: Boolean((process.env.PAYMONGO_SECRET_KEY || '').trim()), windowHours: WINDOW_MS / 3600000, paymentsLive: (process.env.PAYMONGO_SECRET_KEY || '').trim().startsWith('sk_live_'),
-    tiers: Object.fromEntries(Object.entries(TIERS()).map(([k, t]) => [k, { label: t.label, monthly: t.monthly, yearly: t.yearly, gens: t.gens, react: t.react, tools: t.tools, ...spec(t.quality) }])) });
+    tiers: Object.fromEntries(Object.entries(TIERS()).map(([k, t]) => [k, { label: t.label, monthly: t.monthly, yearly: k === 'pro' ? t.yearly : null, gens: t.gens, react: t.react, tools: t.tools, ...spec(t.quality) }])) });
 };
